@@ -96,7 +96,7 @@ export function buildRecommendations(results: AuditResult[]): Recommendation[] {
 
   const recommendations: Recommendation[] = failed.map((r) => ({
     priority: priorityMap[r.severity] ?? 'low',
-    category: r.ruleId.split('-')[0] ?? 'General',
+    category: r.ruleId.split('-')[0] || 'General',
     title: `${r.ruleId}: ${r.ruleName}`,
     description: r.message,
     howToFix: r.recommendation!,

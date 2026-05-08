@@ -1,6 +1,10 @@
 import chalk from 'chalk';
 import Table from 'cli-table3';
-import type { ScorecardReport, AuditResult, Recommendation } from '../config/types.js';
+import type {
+  ScorecardReport,
+  AuditResult,
+  Recommendation,
+} from '../config/types.js';
 
 /**
  * Format a ScorecardReport as a colored CLI table output.
@@ -52,7 +56,7 @@ function formatHeader(report: ScorecardReport): string {
     `  Grade:          ${gradeColor(report.overallGrade)}`,
     `  Recommendation: ${recColor(report.deploymentRecommendation)}`,
     '',
-    `  Checks:         ${report.layers.configAudit.totalChecks} total · ${chalk.green(String(report.layers.configAudit.passed) + ' passed')} · ${chalk.red(String(report.layers.configAudit.failed) + ' failed')} · ${chalk.yellow(String(report.layers.configAudit.warnings) + ' warnings')}`,
+    `  Checks:         ${report.layers.configAudit.totalChecks} total · ${chalk.green(String(report.layers.configAudit.passed) + ' passed')} · ${chalk.red(String(report.layers.configAudit.failed) + ' failed')} · ${chalk.yellow(String(report.layers.configAudit.warnings) + ' warnings')} · ${chalk.blue(String(report.layers.configAudit.infoIssues) + ' info')}`,
   );
 
   return lines.join('\n');
@@ -156,9 +160,7 @@ function getGradeColor(grade: string): (text: string) => string {
   }
 }
 
-function getRecommendationColor(
-  rec: string,
-): (text: string) => string {
+function getRecommendationColor(rec: string): (text: string) => string {
   switch (rec) {
     case 'ready':
       return chalk.green.bold;

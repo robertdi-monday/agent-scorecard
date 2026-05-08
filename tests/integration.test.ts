@@ -1,10 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { loadConfig } from '../src/config/loader.js';
 import { runAudit } from '../src/auditors/runner.js';
-import { calculateScore, buildRecommendations } from '../src/scoring/aggregator.js';
+import {
+  calculateScore,
+  buildRecommendations,
+} from '../src/scoring/aggregator.js';
 import { formatJsonReport } from '../src/output/json-reporter.js';
 import { formatCliReport } from '../src/output/cli-reporter.js';
 import { SCORECARD_VERSION } from '../src/config/constants.js';
+import { summarizeConfigAuditLayer } from '../src/report/config-audit-summary.js';
 import type { ScorecardReport } from '../src/config/types.js';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -16,6 +20,7 @@ function runPipeline(fixtureName: string, vertical?: string) {
   const config = loadConfig(configPath);
   const results = runAudit(config, vertical);
   const score = calculateScore(results);
+  const layer = summarizeConfigAuditLayer(results);
   const report: ScorecardReport = {
     metadata: {
       agentId: config.agentId,
@@ -31,13 +36,11 @@ function runPipeline(fixtureName: string, vertical?: string) {
     layers: {
       configAudit: {
         score: score.score,
-        totalChecks: results.length,
-        passed: results.filter((r) => r.passed).length,
-        failed: results.filter((r) => !r.passed && r.severity === 'critical')
-          .length,
-        warnings: results.filter(
-          (r) => !r.passed && r.severity !== 'critical',
-        ).length,
+        totalChecks: layer.totalChecks,
+        passed: layer.passed,
+        failed: layer.failed,
+        warnings: layer.warnings,
+        infoIssues: layer.infoIssues,
         results,
       },
     },

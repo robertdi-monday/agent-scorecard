@@ -1,18 +1,33 @@
 {
   "name": "agent-scorecard",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Deterministic configuration audit for monday.com Agent Builder agents",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "bin": {
     "agent-scorecard": "./dist/cli.js"
   },
+  "files": [
+    "dist",
+    "schemas"
+  ],
   "scripts": {
     "build": "tsc",
+    "pretest": "npm run build",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit",
     "prettier:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\"",
-    "prettier:fix": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\""
+    "prettier:fix": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "validate:schema": "node scripts/validate-fixtures.mjs",
+    "verify": "npm run lint && npm run prettier:check && npm test && npm run validate:schema"
   },
   "engines": {
     "node": ">=20"
@@ -24,6 +39,8 @@
   },
   "devDependencies": {
     "@types/node": "^22.15.0",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
     "prettier": "^3.5.3",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3",

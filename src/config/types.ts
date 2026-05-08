@@ -103,7 +103,10 @@ export interface ScorecardReport {
       totalChecks: number;
       passed: number;
       failed: number;
+      /** Failed checks with severity `warning` only. */
       warnings: number;
+      /** Failed checks with severity `info` only. */
+      infoIssues: number;
       results: AuditResult[];
     };
   };

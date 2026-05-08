@@ -17,6 +17,17 @@ function makeResult(
   };
 }
 
+/** Uniform info-level rules: score = (passedCount / total) × 100 (one decimal). */
+function infoOnlyResults(passedCount: number, total: number): AuditResult[] {
+  return Array.from({ length: total }, (_, i) =>
+    makeResult({
+      ruleId: `R-${String(i).padStart(3, '0')}`,
+      severity: 'info',
+      passed: i < passedCount,
+    }),
+  );
+}
+
 describe('calculateScore', () => {
   it('returns 100 and Grade A when all rules pass', () => {
     const results: AuditResult[] = [
@@ -85,6 +96,38 @@ describe('calculateScore', () => {
     const score = calculateScore([]);
     expect(score.score).toBe(100);
     expect(score.grade).toBe('A');
+    expect(score.deploymentRecommendation).toBe('ready');
+  });
+
+  describe('grade thresholds (GRADE_THRESHOLDS)', () => {
+    it('A at 90%, B at 89%', () => {
+      expect(calculateScore(infoOnlyResults(90, 100)).grade).toBe('A');
+      expect(calculateScore(infoOnlyResults(89, 100)).grade).toBe('B');
+      expect(
+        calculateScore(infoOnlyResults(90, 100)).deploymentRecommendation,
+      ).toBe('ready');
+      expect(
+        calculateScore(infoOnlyResults(89, 100)).deploymentRecommendation,
+      ).toBe('needs-fixes');
+    });
+
+    it('B at 75%, C at 74% (GRADE_THRESHOLDS B=75, C=60)', () => {
+      expect(calculateScore(infoOnlyResults(75, 100)).grade).toBe('B');
+      expect(calculateScore(infoOnlyResults(74, 100)).grade).toBe('C');
+    });
+
+    it('C at 60%, D at 59%', () => {
+      expect(calculateScore(infoOnlyResults(60, 100)).grade).toBe('C');
+      expect(calculateScore(infoOnlyResults(59, 100)).grade).toBe('D');
+    });
+
+    it('D at 40%, F at 39%', () => {
+      expect(calculateScore(infoOnlyResults(40, 100)).grade).toBe('D');
+      expect(calculateScore(infoOnlyResults(39, 100)).grade).toBe('F');
+      expect(
+        calculateScore(infoOnlyResults(39, 100)).deploymentRecommendation,
+      ).toBe('not-ready');
+    });
   });
 
   it('sets hasCriticalFailure to false when no critical rules fail', () => {
@@ -155,5 +198,32 @@ describe('buildRecommendations', () => {
     ];
     const recs = buildRecommendations(results);
     expect(recs).toHaveLength(0);
+  });
+
+  it('uses category General when ruleId has no prefix before hyphen', () => {
+    const results: AuditResult[] = [
+      makeResult({
+        ruleId: '',
+        severity: 'warning',
+        passed: false,
+        recommendation: 'Fix',
+      }),
+    ];
+    const recs = buildRecommendations(results);
+    expect(recs[0].category).toBe('General');
+  });
+
+  it('maps unknown severity to low priority', () => {
+    const results: AuditResult[] = [
+      makeResult({
+        ruleId: 'X-001',
+        severity: 'warning',
+        passed: false,
+        recommendation: 'Fix',
+      }),
+    ];
+    (results[0] as { severity: string }).severity = 'unknown';
+    const recs = buildRecommendations(results as AuditResult[]);
+    expect(recs[0].priority).toBe('low');
   });
 });

@@ -22,6 +22,31 @@ describe('TL-001: Tool necessity', () => {
     expect(result.passed).toBe(true);
   });
 
+  it('matches unnecessary tools via displayName when name differs', () => {
+    const config: AgentConfig = {
+      ...(goodAgent as unknown as AgentConfig),
+      instructions: {
+        goal: 'Data retrieval and lookup from connected boards',
+        plan: 'Read-only reporting',
+        userPrompt: '',
+      },
+      tools: [
+        {
+          name: 'custom-integration-xyz',
+          displayName: 'Tavily Web Search',
+          type: 'custom',
+          connectionStatus: 'connected',
+          enabled: true,
+        },
+      ],
+    };
+    const result = tl001.check(config);
+    expect(result.passed).toBe(false);
+    expect((result.evidence?.flaggedTools as string[]).join(',')).toMatch(
+      /Tavily/i,
+    );
+  });
+
   it('flags unnecessary web-search tool for a data retrieval agent', () => {
     const config: AgentConfig = {
       ...(goodAgent as unknown as AgentConfig),

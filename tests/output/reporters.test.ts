@@ -3,9 +3,7 @@ import { formatJsonReport } from '../../src/output/json-reporter.js';
 import { formatCliReport } from '../../src/output/cli-reporter.js';
 import type { ScorecardReport } from '../../src/config/types.js';
 
-function makeReport(
-  overrides: Partial<ScorecardReport> = {},
-): ScorecardReport {
+function makeReport(overrides: Partial<ScorecardReport> = {}): ScorecardReport {
   return {
     metadata: {
       agentId: 'test-001',
@@ -24,6 +22,7 @@ function makeReport(
         passed: 8,
         failed: 1,
         warnings: 1,
+        infoIssues: 0,
         results: [
           {
             ruleId: 'KB-001',

@@ -106,15 +106,33 @@ const kb003: AuditRule = {
     const now = Date.now();
     const thresholdMs = KB_STALENESS_DAYS * 24 * 60 * 60 * 1000;
     const staleFiles: string[] = [];
+    const invalidTimestampFiles: string[] = [];
     let hasTimestamp = false;
 
     for (const file of files) {
       if (!file.lastUpdated) continue;
       hasTimestamp = true;
       const updatedAt = new Date(file.lastUpdated).getTime();
+      if (Number.isNaN(updatedAt)) {
+        invalidTimestampFiles.push(file.fileName);
+        continue;
+      }
       if (now - updatedAt > thresholdMs) {
         staleFiles.push(file.fileName);
       }
+    }
+
+    if (invalidTimestampFiles.length > 0) {
+      return {
+        ruleId: this.id,
+        ruleName: this.name,
+        severity: this.severity,
+        passed: false,
+        message: `${invalidTimestampFiles.length} file(s) have invalid lastUpdated values (not parseable as dates): ${invalidTimestampFiles.join(', ')}.`,
+        recommendation:
+          'Use ISO 8601 timestamps for lastUpdated (e.g. 2026-04-15T00:00:00Z) so freshness can be audited.',
+        evidence: { invalidTimestampFiles },
+      };
     }
 
     if (!hasTimestamp) {

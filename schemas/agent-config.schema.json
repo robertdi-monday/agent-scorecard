@@ -1,0 +1,142 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/robertdi-monday/agent-scorecard/schemas/agent-config.schema.json",
+  "title": "AgentConfig",
+  "description": "monday.com Agent Builder exported configuration schema, as expected by agent-scorecard.",
+  "type": "object",
+  "required": [
+    "agentId",
+    "agentName",
+    "kind",
+    "state",
+    "instructions",
+    "knowledgeBase",
+    "tools",
+    "triggers",
+    "permissions"
+  ],
+  "properties": {
+    "agentId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "agentName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["PERSONAL", "ACCOUNT_LEVEL", "EXTERNAL"]
+    },
+    "state": {
+      "type": "string",
+      "enum": ["ACTIVE", "INACTIVE", "ARCHIVED", "DELETED", "FAILED"]
+    },
+    "instructions": {
+      "type": "object",
+      "required": ["goal", "plan"],
+      "properties": {
+        "goal": { "type": "string", "minLength": 1 },
+        "plan": { "type": "string", "minLength": 1 },
+        "userPrompt": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "knowledgeBase": {
+      "type": "object",
+      "required": ["files"],
+      "properties": {
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["fileName", "sourceType"],
+            "properties": {
+              "fileName": { "type": "string", "minLength": 1 },
+              "sourceType": { "type": "string", "minLength": 1 },
+              "lastUpdated": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "tools": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "displayName", "type", "connectionStatus", "enabled"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "displayName": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["builtin", "custom", "app-feature"]
+          },
+          "connectionStatus": {
+            "type": "string",
+            "enum": ["ready", "connected", "not_connected"]
+          },
+          "enabled": { "type": "boolean" },
+          "modifiesColumns": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "triggers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "blockReferenceId", "triggerType", "triggerConfig"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "blockReferenceId": { "type": "string", "minLength": 1 },
+          "triggerType": { "type": "string", "minLength": 1 },
+          "triggerConfig": { "type": "object" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "permissions": {
+      "type": "object",
+      "required": ["scopeType", "connectedBoards", "connectedDocs"],
+      "properties": {
+        "scopeType": {
+          "type": "string",
+          "enum": ["workspace", "board", "custom"]
+        },
+        "connectedBoards": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "connectedDocs": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "parentAgentId": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "description"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "name": { "type": "string", "minLength": 1 },
+          "description": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": true
+}

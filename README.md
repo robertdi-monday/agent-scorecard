@@ -86,9 +86,26 @@ npx tsx src/cli.ts audit --config agent.json --format json --output report.json
 | ASI-03 | Identity & Privilege Abuse | PM-001, PM-002 |
 | ASI-08 | Cascading Failures | TR-001, TR-002 |
 
+## JSON Report Contract
+
+When using `--format json`, the output follows the `ScorecardReport` interface defined in [`src/config/types.ts`](src/config/types.ts). The `layers.configAudit` object contains:
+
+| Field | Meaning |
+|-------|---------|
+| `totalChecks` | Number of rules executed |
+| `passed` | Rules that passed |
+| `failed` | Failed checks with severity **critical** |
+| `warnings` | Failed checks with severity **warning** |
+| `infoIssues` | Failed checks with severity **info** |
+| `results` | Full `AuditResult[]` array |
+
+**Invariant:** `passed + failed + warnings + infoIssues === totalChecks`
+
 ## Agent Config Schema
 
 The CLI expects a JSON file matching the `AgentConfig` interface. See [`src/config/types.ts`](src/config/types.ts) for the full schema and [`tests/fixtures/`](tests/fixtures/) for examples.
+
+A JSON Schema definition is also available at [`schemas/agent-config.schema.json`](schemas/agent-config.schema.json) — maintained in-repo until monday publishes an official export schema.
 
 ## Development
 
@@ -98,7 +115,18 @@ npm test                # Run all tests (vitest)
 npm run test:watch      # Watch mode
 npm run lint            # Type-check
 npm run prettier:check  # Format check
+npm run verify          # Full CI-equivalent: lint + prettier + build + test
 ```
+
+## Fixtures
+
+Test fixtures in [`tests/fixtures/`](tests/fixtures/) should mirror sanitized real Agent Builder exports. When the Builder export shape changes:
+
+1. Update fixtures to match the new shape.
+2. Update [`schemas/agent-config.schema.json`](schemas/agent-config.schema.json) accordingly.
+3. Run `npm run validate:schema` to confirm alignment.
+
+The JSON Schema is maintained in-repo until monday publishes an official export schema.
 
 ## Project Structure
 

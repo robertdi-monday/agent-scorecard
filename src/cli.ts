@@ -8,6 +8,7 @@ import { runAudit } from './auditors/runner.js';
 import { calculateScore, buildRecommendations } from './scoring/aggregator.js';
 import { formatJsonReport } from './output/json-reporter.js';
 import { formatCliReport } from './output/cli-reporter.js';
+import { summarizeConfigAuditLayer } from './report/config-audit-summary.js';
 import type { ScorecardReport } from './config/types.js';
 
 const program = new Command();
@@ -42,6 +43,7 @@ program
 
         // 3. Score
         const score = calculateScore(results);
+        const layer = summarizeConfigAuditLayer(results);
 
         // 4. Build report
         const report: ScorecardReport = {
@@ -59,14 +61,11 @@ program
           layers: {
             configAudit: {
               score: score.score,
-              totalChecks: results.length,
-              passed: results.filter((r) => r.passed).length,
-              failed: results.filter(
-                (r) => !r.passed && r.severity === 'critical',
-              ).length,
-              warnings: results.filter(
-                (r) => !r.passed && r.severity !== 'critical',
-              ).length,
+              totalChecks: layer.totalChecks,
+              passed: layer.passed,
+              failed: layer.failed,
+              warnings: layer.warnings,
+              infoIssues: layer.infoIssues,
               results,
             },
           },

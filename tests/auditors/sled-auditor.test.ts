@@ -46,6 +46,20 @@ describe('SLED-002: Financial no-fabrication rule', () => {
     const result = sled002.check(config);
     expect(result.passed).toBe(false);
   });
+
+  it('fails when no-fabrication wording exists but no financial context', () => {
+    const config: AgentConfig = {
+      ...(goodAgent as unknown as AgentConfig),
+      instructions: {
+        goal: 'Be honest and accurate in all responses.',
+        plan: 'Never fabricate information. Ask for clarification when unsure.',
+        userPrompt: '',
+      },
+    };
+    const result = sled002.check(config);
+    expect(result.passed).toBe(false);
+    expect(result.message).toMatch(/financial context/i);
+  });
 });
 
 describe('SLED-003: Eligibility knowledge files', () => {

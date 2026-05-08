@@ -50,7 +50,8 @@ const tl001: AuditRule = {
       }
     }
 
-    const passed = flaggedTools.length === 0;
+    const uniqueFlagged = [...new Set(flaggedTools)];
+    const passed = uniqueFlagged.length === 0;
     return {
       ruleId: this.id,
       ruleName: this.name,
@@ -58,11 +59,11 @@ const tl001: AuditRule = {
       passed,
       message: passed
         ? `All ${enabledTools.length} enabled tool(s) appear relevant to the agent purpose.`
-        : `${flaggedTools.length} tool(s) may be unnecessary for this agent: ${flaggedTools.join(', ')}.`,
+        : `${uniqueFlagged.length} tool(s) may be unnecessary for this agent: ${uniqueFlagged.join(', ')}.`,
       recommendation: passed
         ? undefined
         : 'Disable tools that are not needed for the agent purpose to reduce attack surface.',
-      evidence: { flaggedTools },
+      evidence: { flaggedTools: uniqueFlagged },
       owaspAsi: this.owaspAsi,
     };
   },
