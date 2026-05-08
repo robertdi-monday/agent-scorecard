@@ -1,0 +1,55 @@
+{
+  "agentId": "agent-bad-001",
+  "agentName": "Grant Helper",
+  "kind": "PERSONAL",
+  "state": "ACTIVE",
+  "instructions": {
+    "goal": "Help with grants",
+    "plan": "Help users with grant stuff.",
+    "userPrompt": ""
+  },
+  "knowledgeBase": {
+    "files": []
+  },
+  "tools": [
+    {
+      "name": "tavily-web-search",
+      "displayName": "Tavily Web Search",
+      "type": "custom",
+      "connectionStatus": "not_connected",
+      "enabled": true
+    },
+    {
+      "name": "monday-write",
+      "displayName": "monday.com Write",
+      "type": "builtin",
+      "connectionStatus": "ready",
+      "enabled": true,
+      "modifiesColumns": ["status", "date"]
+    },
+    {
+      "name": "email-sender",
+      "displayName": "Email Sender",
+      "type": "custom",
+      "connectionStatus": "connected",
+      "enabled": true
+    }
+  ],
+  "triggers": [
+    {
+      "name": "When Status changes",
+      "blockReferenceId": "14849231",
+      "triggerType": "column_change",
+      "triggerConfig": {
+        "boardId": "99999",
+        "columnId": "status"
+      }
+    }
+  ],
+  "permissions": {
+    "scopeType": "workspace",
+    "connectedBoards": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"],
+    "connectedDocs": []
+  },
+  "skills": []
+}

@@ -1,0 +1,123 @@
+import { describe, it, expect } from 'vitest';
+import { loadConfig } from '../src/config/loader.js';
+import { runAudit } from '../src/auditors/runner.js';
+import { calculateScore, buildRecommendations } from '../src/scoring/aggregator.js';
+import { formatJsonReport } from '../src/output/json-reporter.js';
+import { formatCliReport } from '../src/output/cli-reporter.js';
+import { SCORECARD_VERSION } from '../src/config/constants.js';
+import type { ScorecardReport } from '../src/config/types.js';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+function runPipeline(fixtureName: string, vertical?: string) {
+  const configPath = resolve(__dirname, 'fixtures', fixtureName);
+  const config = loadConfig(configPath);
+  const results = runAudit(config, vertical);
+  const score = calculateScore(results);
+  const report: ScorecardReport = {
+    metadata: {
+      agentId: config.agentId,
+      agentName: config.agentName,
+      vertical,
+      timestamp: new Date().toISOString(),
+      scorecardVersion: SCORECARD_VERSION,
+      phasesRun: ['config-audit'],
+    },
+    overallScore: score.score,
+    overallGrade: score.grade,
+    deploymentRecommendation: score.deploymentRecommendation,
+    layers: {
+      configAudit: {
+        score: score.score,
+        totalChecks: results.length,
+        passed: results.filter((r) => r.passed).length,
+        failed: results.filter((r) => !r.passed && r.severity === 'critical')
+          .length,
+        warnings: results.filter(
+          (r) => !r.passed && r.severity !== 'critical',
+        ).length,
+        results,
+      },
+    },
+    recommendations: buildRecommendations(results),
+  };
+  return { config, results, score, report };
+}
+
+describe('Integration: Full pipeline', () => {
+  describe('good-agent.json with sled-grant vertical', () => {
+    it('scores Grade A', () => {
+      const { score } = runPipeline('good-agent.json', 'sled-grant');
+      expect(score.grade).toBe('A');
+    });
+
+    it('recommends deployment as ready', () => {
+      const { score } = runPipeline('good-agent.json', 'sled-grant');
+      expect(score.deploymentRecommendation).toBe('ready');
+    });
+
+    it('has no critical failures', () => {
+      const { score } = runPipeline('good-agent.json', 'sled-grant');
+      expect(score.hasCriticalFailure).toBe(false);
+    });
+
+    it('produces valid JSON output', () => {
+      const { report } = runPipeline('good-agent.json', 'sled-grant');
+      const json = formatJsonReport(report);
+      const parsed = JSON.parse(json);
+      expect(parsed.overallGrade).toBe('A');
+    });
+
+    it('produces CLI output without error', () => {
+      const { report } = runPipeline('good-agent.json', 'sled-grant');
+      const cli = formatCliReport(report);
+      expect(cli).toContain('SLED Grant Management Assistant');
+    });
+  });
+
+  describe('bad-agent.json with sled-grant vertical', () => {
+    it('scores Grade F', () => {
+      const { score } = runPipeline('bad-agent.json', 'sled-grant');
+      expect(score.grade).toBe('F');
+    });
+
+    it('recommends not-ready', () => {
+      const { score } = runPipeline('bad-agent.json', 'sled-grant');
+      expect(score.deploymentRecommendation).toBe('not-ready');
+    });
+
+    it('has critical failures', () => {
+      const { score } = runPipeline('bad-agent.json', 'sled-grant');
+      expect(score.hasCriticalFailure).toBe(true);
+    });
+
+    it('produces multiple recommendations', () => {
+      const { report } = runPipeline('bad-agent.json', 'sled-grant');
+      expect(report.recommendations.length).toBeGreaterThan(3);
+    });
+  });
+
+  describe('edge-case-agent.json without vertical', () => {
+    it('completes without error', () => {
+      expect(() => runPipeline('edge-case-agent.json')).not.toThrow();
+    });
+
+    it('runs only base rules (13)', () => {
+      const { results } = runPipeline('edge-case-agent.json');
+      expect(results.length).toBe(13);
+    });
+
+    it('produces a score between 0 and 100', () => {
+      const { score } = runPipeline('edge-case-agent.json');
+      expect(score.score).toBeGreaterThanOrEqual(0);
+      expect(score.score).toBeLessThanOrEqual(100);
+    });
+
+    it('runs SLED rules when vertical is specified', () => {
+      const { results } = runPipeline('edge-case-agent.json', 'sled-grant');
+      expect(results.length).toBe(17);
+    });
+  });
+});

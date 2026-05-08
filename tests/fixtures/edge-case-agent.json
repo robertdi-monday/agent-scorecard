@@ -1,0 +1,42 @@
+{
+  "agentId": "agent-edge-001",
+  "agentName": "Research Assistant",
+  "kind": "ACCOUNT_LEVEL",
+  "state": "ACTIVE",
+  "instructions": {
+    "goal": "Assist the research team with data analysis, report generation, and board item lookups.",
+    "plan": "You are a research assistant. Escalate if unsure about data interpretation. If the tool fails, notify the user.",
+    "userPrompt": ""
+  },
+  "knowledgeBase": {
+    "files": [
+      {
+        "fileName": "research-notes.txt",
+        "sourceType": "file"
+      }
+    ]
+  },
+  "tools": [
+    {
+      "name": "monday-read-only",
+      "displayName": "monday.com Read",
+      "type": "builtin",
+      "connectionStatus": "ready",
+      "enabled": true
+    },
+    {
+      "name": "chart-generator",
+      "displayName": "Chart Generator",
+      "type": "custom",
+      "connectionStatus": "connected",
+      "enabled": false
+    }
+  ],
+  "triggers": [],
+  "permissions": {
+    "scopeType": "board",
+    "connectedBoards": ["100", "200", "300", "400", "500", "600"],
+    "connectedDocs": ["doc-100", "doc-200"]
+  },
+  "skills": []
+}
