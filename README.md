@@ -27,7 +27,12 @@ This covers a subset of the full rule set (11 of 28 rules) — specifically the 
 
 ## MCP Server
 
-An MCP server exposes the scorecard audit pipeline as tools that Agent Builder agents (or any MCP client) can call. The server runs over stdio and uses the existing library for deterministic checks, scoring, and LLM review.
+Two transports are available:
+
+| Transport | File | Use case |
+|-----------|------|----------|
+| **stdio** | `src/mcp/server.ts` | Local use, direct MCP client integration |
+| **Streamable HTTP** | `src/mcp/http-server.ts` | Deployment as a custom MCP in Agent Builder |
 
 **Tools:**
 
@@ -45,16 +50,44 @@ The `audit_agent` tool accepts agent configuration as a JSON string. This can be
 |----------|----------|---------|
 | `MONDAY_API_TOKEN` | For API client | monday.com personal API token (used by the `createMcpApiClient` helper) |
 | `ANTHROPIC_API_KEY` | No | Anthropic API key for LLM review checks |
+| `MCP_API_KEY` | For HTTP server | Shared secret for authenticating incoming MCP requests |
+| `PORT` | No | HTTP server port (default 3001) |
 
 **Running:**
 
 ```bash
-# Development (via tsx)
+# stdio transport (local)
 npm run mcp
 
+# HTTP transport (deployable)
+MCP_API_KEY=your-secret PORT=3001 npm run mcp:http
+
 # After build
-node dist/mcp/server.js
+node dist/mcp/server.js          # stdio
+node dist/mcp/http-server.js     # HTTP
 ```
+
+**Deploying the HTTP server:**
+
+```bash
+# Docker
+docker build -t agent-scorecard-mcp .
+docker run -p 3001:3001 -e MCP_API_KEY=xxx agent-scorecard-mcp
+
+# Local + Cloudflare Tunnel (dev/testing)
+MCP_API_KEY=xxx PORT=3001 npm run mcp:http
+cloudflared tunnel --url http://localhost:3001
+# → MCP endpoint: https://xxx.trycloudflare.com/mcp
+# → Health check: https://xxx.trycloudflare.com/health
+```
+
+**Provisioning the Scorecard Agent:**
+
+```bash
+MONDAY_API_TOKEN=xxx npx tsx scripts/provision-agent.ts
+```
+
+Creates the agent via `create_agent` on `mcp.monday.com/mcp` with the full instruction set from `AGENT_BUILDER_V1_SPEC.md`. See [`docs/AGENT_BUILDER_SETUP.md`](docs/AGENT_BUILDER_SETUP.md) for the full setup flow including goal/plan (UI-only fields), tool enablement, and custom MCP registration.
 
 **Monday API client:** The `createMcpApiClient(token)` helper in `src/mcp/monday-api.ts` communicates with the official monday MCP server at `mcp.monday.com/mcp` (Streamable HTTP transport). This is the same surface Agent Builder uses internally. It provides `getAgent(id)` and `listAgents()`.
 
@@ -253,7 +286,8 @@ src/
 │   └── probes/                     # 6 adversarial probes
 ├── mcp/
 │   ├── server.ts                   # MCP server entry point (stdio transport)
-│   ├── monday-api.ts               # monday.com API client (public + internal stub)
+│   ├── http-server.ts              # MCP server entry point (Streamable HTTP transport)
+│   ├── monday-api.ts               # monday.com API client (MCP-based)
 │   └── public-api-mapper.ts        # Public API response → AgentConfig
 ├── mapper/
 │   ├── api-types.ts                # Internal API response types

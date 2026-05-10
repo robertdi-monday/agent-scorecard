@@ -29,6 +29,7 @@
     "prettier:check": "prettier --check \"src/**/*.{ts,tsx}\" \"tests/**/*.ts\"",
     "prettier:fix": "prettier --write \"src/**/*.{ts,tsx}\" \"tests/**/*.ts\"",
     "mcp": "tsx src/mcp/server.ts",
+    "mcp:http": "tsx src/mcp/http-server.ts",
     "build:app": "vite build --config vite.config.app.ts",
     "validate:schema": "node scripts/validate-fixtures.mjs",
     "verify": "npm run lint && npm run prettier:check && npm test && npm run validate:schema"

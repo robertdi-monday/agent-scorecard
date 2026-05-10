@@ -1,0 +1,9 @@
+node_modules
+dist
+dist-app
+.git
+tests
+*.md
+.env*
+.cursor
+agent-scorecard-app.zip
