@@ -25,6 +25,36 @@ This covers a subset of the full rule set (11 of 28 rules) — specifically the 
 - **Full spec:** [`AGENT_BUILDER_V1_SPEC.md`](AGENT_BUILDER_V1_SPEC.md)
 - **Setup guide:** [`docs/AGENT_BUILDER_SETUP.md`](docs/AGENT_BUILDER_SETUP.md)
 
+## MCP Server
+
+An MCP server exposes the scorecard audit pipeline as tools that Agent Builder agents (or any MCP client) can call. The server runs over stdio and uses the existing library for deterministic checks, scoring, and LLM review.
+
+**Tools:**
+
+| Tool | Description |
+|------|-------------|
+| `audit_agent` | Full audit pipeline: fetch config, run instruction-level checks, optional simulation and LLM review, return `ScorecardReport` |
+| `get_agent_config` | Fetch and return an agent's mapped configuration for inspection |
+
+**Environment variables:**
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `MONDAY_API_TOKEN` | Yes | monday.com personal API token |
+| `ANTHROPIC_API_KEY` | No | Anthropic API key for LLM review checks |
+
+**Running:**
+
+```bash
+# Development (via tsx)
+MONDAY_API_TOKEN=xxx npm run mcp
+
+# After build
+MONDAY_API_TOKEN=xxx node dist/mcp/server.js
+```
+
+**Coverage note:** The public monday API (`get_agent`) only returns instruction-level fields (goal, plan, user_prompt). The MCP server automatically filters to the 7 instruction-only rules (IN-001 through IN-004, EF-001, EF-004, SC-001) to avoid false failures on rules that require tools, KB, or permission data. LLM review checks (LR-001 through LR-005) work fully since they evaluate instruction text. When internal API access is available, the server can be extended to run all 28 rules.
+
 ## CLI
 
 The CLI operates on exported agent config JSON files, useful for local debugging and CI gating.
@@ -170,8 +200,9 @@ The embedded app fetches agents from `GET /monday-agents/agent-management/agents
 ## Development
 
 ```bash
-npm run build           # TypeScript compile (CLI + library)
+npm run build           # TypeScript compile (CLI + library + MCP server)
 npm run build:app       # Vite build (monday.com app → dist-app/)
+npm run mcp             # Start MCP server (stdio, requires MONDAY_API_TOKEN)
 npm test                # Run all tests (vitest)
 npm run test:watch      # Watch mode
 npm run test:coverage   # With coverage
@@ -215,6 +246,10 @@ src/
 │   ├── simulator.ts                # Orchestrates all probes
 │   ├── types.ts                    # SimulationProbe, SimulationSummary
 │   └── probes/                     # 6 adversarial probes
+├── mcp/
+│   ├── server.ts                   # MCP server entry point (stdio transport)
+│   ├── monday-api.ts               # monday.com API client (public + internal stub)
+│   └── public-api-mapper.ts        # Public API response → AgentConfig
 ├── mapper/
 │   ├── api-types.ts                # Internal API response types
 │   └── api-to-config.ts            # API response → AgentConfig

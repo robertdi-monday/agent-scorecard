@@ -12,6 +12,12 @@
 - `AGENT_BUILDER_V1_SPEC.md` — full implementation spec for the instruction-driven agent
 - `docs/AGENT_BUILDER_SETUP.md` — step-by-step setup guide with copy-paste configuration blocks
 - Agent Builder section in README
+- **MCP Server** — exposes the audit pipeline as MCP tools over stdio
+  - `audit_agent` tool: full pipeline (fetch config, deterministic checks, optional LLM review, scoring)
+  - `get_agent_config` tool: fetch and inspect an agent's mapped configuration
+  - Automatic rule filtering to instruction-only checks when using the public API
+  - Uses `@modelcontextprotocol/sdk` v1.x with stdio transport
+  - `npm run mcp` script and `agent-scorecard-mcp` bin entry
 
 ### Limitations
 

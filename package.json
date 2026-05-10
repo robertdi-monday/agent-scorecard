@@ -12,7 +12,8 @@
     }
   },
   "bin": {
-    "agent-scorecard": "./dist/cli.js"
+    "agent-scorecard": "./dist/cli.js",
+    "agent-scorecard-mcp": "./dist/mcp/server.js"
   },
   "files": [
     "dist",
@@ -27,6 +28,7 @@
     "lint": "tsc --noEmit",
     "prettier:check": "prettier --check \"src/**/*.{ts,tsx}\" \"tests/**/*.ts\"",
     "prettier:fix": "prettier --write \"src/**/*.{ts,tsx}\" \"tests/**/*.ts\"",
+    "mcp": "tsx src/mcp/server.ts",
     "build:app": "vite build --config vite.config.app.ts",
     "validate:schema": "node scripts/validate-fixtures.mjs",
     "verify": "npm run lint && npm run prettier:check && npm test && npm run validate:schema"
@@ -35,6 +37,7 @@
     "node": ">=20"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "chalk": "^5.4.1",
     "cli-table3": "^0.6.5",
     "commander": "^13.1.0"
