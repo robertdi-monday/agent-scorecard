@@ -10,7 +10,8 @@ import { RecommendationPanel } from './components/RecommendationPanel.js';
 
 declare const mondaySdk: (() => {
   init: () => void;
-}) & Record<string, unknown>;
+}) &
+  Record<string, unknown>;
 
 function App() {
   const sdkInitialized = useRef(false);
