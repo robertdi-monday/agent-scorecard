@@ -10,21 +10,52 @@ import { LlmReviewResults } from './components/LlmReviewResults.js';
 import { ApiKeySettings } from './components/ApiKeySettings.js';
 import { RecommendationPanel } from './components/RecommendationPanel.js';
 
-declare const mondaySdk: (() => {
+const STORAGE_KEY = 'anthropic-api-key';
+
+interface MondaySdkInstance {
   init: () => void;
-}) &
-  Record<string, unknown>;
+  storage: {
+    instance: {
+      setItem: (key: string, value: { value: string }) => Promise<void>;
+      getItem: (key: string) => Promise<{ data: { value: string } }>;
+    };
+  };
+}
+
+declare const mondaySdk: (() => MondaySdkInstance) & Record<string, unknown>;
+
+function getMondayInstance(): MondaySdkInstance | null {
+  if (typeof mondaySdk !== 'undefined') return mondaySdk();
+  return null;
+}
 
 function App() {
   const sdkInitialized = useRef(false);
   const [apiKey, setApiKey] = useState('');
 
   useEffect(() => {
-    if (!sdkInitialized.current && typeof mondaySdk !== 'undefined') {
-      mondaySdk().init();
-      sdkInitialized.current = true;
-    }
+    const monday = getMondayInstance();
+    if (!monday || sdkInitialized.current) return;
+    monday.init();
+    sdkInitialized.current = true;
+
+    monday.storage.instance
+      .getItem(STORAGE_KEY)
+      .then((res) => {
+        if (res?.data?.value) setApiKey(res.data.value);
+      })
+      .catch(() => {});
   }, []);
+
+  const handleApiKeyChange = (key: string) => {
+    setApiKey(key);
+    const monday = getMondayInstance();
+    if (monday) {
+      monday.storage.instance
+        .setItem(STORAGE_KEY, { value: key })
+        .catch(() => {});
+    }
+  };
 
   const { agents, selected, selectAgent, loading, error, refresh } =
     useAgentConfig();
@@ -98,7 +129,7 @@ function App() {
         </div>
       )}
 
-      <ApiKeySettings apiKey={apiKey} onChange={setApiKey} />
+      <ApiKeySettings apiKey={apiKey} onChange={handleApiKeyChange} />
 
       {auditing && <CenteredMessage>Running audit...</CenteredMessage>}
 

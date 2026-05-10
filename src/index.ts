@@ -8,6 +8,7 @@ export {
   calculateOverallScore,
   deriveScoringWeights,
   buildRecommendations,
+  buildAllRecommendations,
   scoreToGrade,
   gradeRank,
   gradeToRecommendation,

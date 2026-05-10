@@ -180,20 +180,30 @@ export function gradeToRecommendation(grade: Grade): DeploymentRecommendation {
   return 'not-ready';
 }
 
+const PRIORITY_MAP: Record<string, 'critical' | 'high' | 'medium' | 'low'> = {
+  critical: 'critical',
+  warning: 'high',
+  info: 'medium',
+};
+
+const PRIORITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3 };
+
+function sortRecommendations(recs: Recommendation[]): Recommendation[] {
+  return recs.sort((a, b) => {
+    const pDiff = PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
+    if (pDiff !== 0) return pDiff;
+    return a.relatedCheckIds[0].localeCompare(b.relatedCheckIds[0]);
+  });
+}
+
 /**
  * Build sorted recommendations from failed/warned audit results.
  */
 export function buildRecommendations(results: AuditResult[]): Recommendation[] {
   const failed = results.filter((r) => !r.passed && r.recommendation);
 
-  const priorityMap: Record<string, 'critical' | 'high' | 'medium' | 'low'> = {
-    critical: 'critical',
-    warning: 'high',
-    info: 'medium',
-  };
-
   const recommendations: Recommendation[] = failed.map((r) => ({
-    priority: priorityMap[r.severity] ?? 'low',
+    priority: PRIORITY_MAP[r.severity] ?? 'low',
     category: r.ruleId.split('-')[0] || 'General',
     title: `${r.ruleId}: ${r.ruleName}`,
     description: r.message,
@@ -202,13 +212,47 @@ export function buildRecommendations(results: AuditResult[]): Recommendation[] {
     owaspAsi: r.owaspAsi,
   }));
 
-  // Sort: critical first, then by rule ID
-  const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
-  recommendations.sort((a, b) => {
-    const pDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
-    if (pDiff !== 0) return pDiff;
-    return a.relatedCheckIds[0].localeCompare(b.relatedCheckIds[0]);
-  });
+  return sortRecommendations(recommendations);
+}
 
-  return recommendations;
+/**
+ * Build recommendations from all layers: config audit + LLM review.
+ * LLM tailored fixes override generic recommendations for the same check.
+ */
+export function buildAllRecommendations(
+  configResults: AuditResult[],
+  llmReviewSummary?: LlmReviewSummary,
+): Recommendation[] {
+  const recs = buildRecommendations(configResults);
+
+  if (!llmReviewSummary) return recs;
+
+  const failedLlm = llmReviewSummary.results.filter(
+    (r) => !r.passed && r.recommendation,
+  );
+  for (const r of failedLlm) {
+    recs.push({
+      priority: PRIORITY_MAP[r.severity] ?? 'low',
+      category: r.checkId.split('-')[0] || 'LLM',
+      title: `${r.checkId}: ${r.checkName}`,
+      description: r.message,
+      howToFix: r.recommendation!,
+      relatedCheckIds: [r.checkId],
+      owaspAsi: r.owaspAsi,
+    });
+  }
+
+  // Tailored fixes from LR-005 override generic howToFix for their related check
+  if (llmReviewSummary.tailoredFixes) {
+    for (const fix of llmReviewSummary.tailoredFixes) {
+      const target = recs.find((r) =>
+        r.relatedCheckIds.includes(fix.relatedCheck),
+      );
+      if (target) {
+        target.howToFix = fix.instructionText;
+      }
+    }
+  }
+
+  return sortRecommendations(recs);
 }

@@ -9,7 +9,7 @@ import {
   calculateScore,
   calculateOverallScore,
   deriveScoringWeights,
-  buildRecommendations,
+  buildAllRecommendations,
 } from './scoring/aggregator.js';
 import type { MultiLayerInput } from './scoring/aggregator.js';
 import { runSimulation } from './simulation/simulator.js';
@@ -175,7 +175,10 @@ program
             ...(simulationLayer ? { simulation: simulationLayer } : {}),
             ...(llmReviewLayer ? { llmReview: llmReviewLayer } : {}),
           },
-          recommendations: buildRecommendations(results),
+          recommendations: buildAllRecommendations(
+            results,
+            multiLayerInput.llmReviewSummary,
+          ),
         };
 
         if (options.format === 'json') {

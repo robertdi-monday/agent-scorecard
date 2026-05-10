@@ -6,7 +6,7 @@ import {
   calculateScore,
   calculateOverallScore,
   deriveScoringWeights,
-  buildRecommendations,
+  buildAllRecommendations,
 } from '../../scoring/aggregator.js';
 import type { MultiLayerInput } from '../../scoring/aggregator.js';
 import { summarizeConfigAuditLayer } from '../../report/config-audit-summary.js';
@@ -112,7 +112,10 @@ export function useAudit(
           },
           ...(llmReviewLayer ? { llmReview: llmReviewLayer } : {}),
         },
-        recommendations: buildRecommendations(results),
+        recommendations: buildAllRecommendations(
+          results,
+          multiLayerInput.llmReviewSummary,
+        ),
       };
 
       setReport(newReport);
