@@ -1,4 +1,4 @@
-import React, { StrictMode } from 'react';
+import React, { StrictMode, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useAgentConfig } from './hooks/useAgentConfig.js';
 import { useAudit } from './hooks/useAudit.js';
@@ -8,7 +8,19 @@ import { RuleResults } from './components/RuleResults.js';
 import { SimulationResults } from './components/SimulationResults.js';
 import { RecommendationPanel } from './components/RecommendationPanel.js';
 
+declare const mondaySdk: (() => {
+  init: () => void;
+}) & Record<string, unknown>;
+
 function App() {
+  const sdkInitialized = useRef(false);
+  useEffect(() => {
+    if (!sdkInitialized.current && typeof mondaySdk !== 'undefined') {
+      mondaySdk().init();
+      sdkInitialized.current = true;
+    }
+  }, []);
+
   const { agents, selected, selectAgent, loading, error, refresh } =
     useAgentConfig();
   const { report, loading: auditing } = useAudit(selected);
