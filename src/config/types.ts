@@ -50,6 +50,10 @@ export type Severity = 'critical' | 'warning' | 'info';
 export type Grade = 'A' | 'B' | 'C' | 'D' | 'F';
 export type DeploymentRecommendation = 'ready' | 'needs-fixes' | 'not-ready';
 
+export interface AuditContext {
+  parentConfig?: AgentConfig;
+}
+
 export interface AuditRule {
   id: string;
   name: string;
@@ -58,7 +62,7 @@ export interface AuditRule {
   category: string;
   vertical?: string;
   owaspAsi?: string[];
-  check: (config: AgentConfig) => AuditResult;
+  check: (config: AgentConfig, context?: AuditContext) => AuditResult;
 }
 
 export interface AuditResult {

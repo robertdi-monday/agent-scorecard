@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 import {
   loadConfig,
   runAudit,
@@ -15,6 +16,8 @@ import {
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const fixturesDir = resolve(__dirname, 'fixtures');
+const _require = createRequire(import.meta.url);
+const pkg = _require('../package.json') as { version: string };
 
 describe('Library entrypoint', () => {
   it('exports a working pipeline that produces a valid report', () => {
@@ -34,7 +37,7 @@ describe('Library entrypoint', () => {
   it('exports getRulesForVertical and SCORECARD_VERSION', () => {
     expect(getRulesForVertical()).toHaveLength(13);
     expect(getRulesForVertical('sled-grant')).toHaveLength(17);
-    expect(SCORECARD_VERSION).toBe('0.2.0');
+    expect(SCORECARD_VERSION).toBe(pkg.version);
   });
 
   it('exports formatJsonReport and formatCliReport', () => {

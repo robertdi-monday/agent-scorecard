@@ -59,6 +59,35 @@ describe('KB-002: Knowledge base relevance', () => {
     const result = kb002.check(config);
     expect(result.passed).toBe(false);
   });
+
+  it('filters stop words like "help" and "data" from goal tokens', () => {
+    const config: AgentConfig = {
+      ...(goodAgent as unknown as AgentConfig),
+      instructions: {
+        ...goodAgent.instructions,
+        goal: 'Help manage data files for grant compliance',
+      },
+    };
+    const result = kb002.check(config);
+    const goalWords = (result.evidence as { goalWords: string[] }).goalWords;
+    expect(goalWords).not.toContain('help');
+    expect(goalWords).not.toContain('data');
+    expect(goalWords).not.toContain('files');
+    expect(goalWords).not.toContain('manage');
+  });
+
+  it('passes as generic when all goal words are stop words', () => {
+    const config: AgentConfig = {
+      ...(goodAgent as unknown as AgentConfig),
+      instructions: {
+        ...goodAgent.instructions,
+        goal: 'Help manage and track data files',
+      },
+    };
+    const result = kb002.check(config);
+    expect(result.passed).toBe(true);
+    expect(result.message).toContain('too generic');
+  });
 });
 
 describe('KB-003: Knowledge base freshness', () => {

@@ -9,7 +9,7 @@ import { calculateScore, buildRecommendations } from './scoring/aggregator.js';
 import { formatJsonReport } from './output/json-reporter.js';
 import { formatCliReport } from './output/cli-reporter.js';
 import { summarizeConfigAuditLayer } from './report/config-audit-summary.js';
-import type { ScorecardReport } from './config/types.js';
+import type { AuditContext, ScorecardReport } from './config/types.js';
 
 const program = new Command();
 
@@ -25,12 +25,17 @@ program
   .description('Run a configuration audit against an agent config JSON file')
   .requiredOption('--config <path>', 'Path to agent config JSON file')
   .option('--vertical <name>', 'Vertical rule pack (e.g., "sled-grant")')
+  .option(
+    '--parent-config <path>',
+    'Path to parent agent config for PM-002 inheritance check',
+  )
   .option('--format <type>', 'Output format: "cli" (default) or "json"', 'cli')
   .option('--output <path>', 'Write JSON output to file instead of stdout')
   .action(
     (options: {
       config: string;
       vertical?: string;
+      parentConfig?: string;
       format: string;
       output?: string;
     }) => {
@@ -39,7 +44,11 @@ program
         const config = loadConfig(options.config);
 
         // 2. Run audit
-        const results = runAudit(config, options.vertical);
+        const context: AuditContext = {};
+        if (options.parentConfig) {
+          context.parentConfig = loadConfig(options.parentConfig);
+        }
+        const results = runAudit(config, options.vertical, context);
 
         // 3. Score
         const score = calculateScore(results);

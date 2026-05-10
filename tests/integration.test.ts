@@ -102,6 +102,25 @@ describe('Integration: Full pipeline', () => {
     });
   });
 
+  describe('child-agent.json without vertical', () => {
+    it('completes without error', () => {
+      expect(() => runPipeline('child-agent.json')).not.toThrow();
+    });
+
+    it('PM-002 passes as info when no parent config provided', () => {
+      const { results } = runPipeline('child-agent.json');
+      const pm002 = results.find((r) => r.ruleId === 'PM-002');
+      expect(pm002).toBeDefined();
+      expect(pm002!.passed).toBe(true);
+      expect(pm002!.severity).toBe('info');
+    });
+
+    it('runs only base rules (13)', () => {
+      const { results } = runPipeline('child-agent.json');
+      expect(results.length).toBe(13);
+    });
+  });
+
   describe('edge-case-agent.json without vertical', () => {
     it('completes without error', () => {
       expect(() => runPipeline('edge-case-agent.json')).not.toThrow();

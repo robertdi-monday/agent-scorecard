@@ -1,4 +1,10 @@
-import type { AgentConfig, AuditRule } from '../config/types.js';
+import type { AgentConfig, AuditContext, AuditRule } from '../config/types.js';
+
+const SCOPE_RANK: Record<string, number> = {
+  custom: 0,
+  board: 1,
+  workspace: 2,
+};
 
 /**
  * PM-001 (critical, ASI-03): Workspace-wide permissions when narrower scope would work.
@@ -36,7 +42,8 @@ const pm001: AuditRule = {
 
 /**
  * PM-002 (warning, ASI-03): Child agent permissions should not exceed parent.
- * Informational — can only flag when parentAgentId is set.
+ * When parentAgentId is set but no parent config is provided, returns info-level pass.
+ * When parent config is provided via AuditContext, performs real scope comparison.
  */
 const pm002: AuditRule = {
   id: 'PM-002',
@@ -46,7 +53,7 @@ const pm002: AuditRule = {
   severity: 'warning',
   category: 'Permissions',
   owaspAsi: ['ASI-03'],
-  check(config: AgentConfig) {
+  check(config: AgentConfig, context?: AuditContext) {
     if (!config.permissions.parentAgentId) {
       return {
         ruleId: this.id,
@@ -58,15 +65,70 @@ const pm002: AuditRule = {
       };
     }
 
+    if (!context?.parentConfig) {
+      return {
+        ruleId: this.id,
+        ruleName: this.name,
+        severity: 'info' as const,
+        passed: true,
+        message: `Agent has parent agent (${config.permissions.parentAgentId}). Parent config not provided — manual review recommended.`,
+        recommendation:
+          'Use --parent-config to supply the parent agent config for automated scope comparison.',
+        evidence: { parentAgentId: config.permissions.parentAgentId },
+        owaspAsi: this.owaspAsi,
+      };
+    }
+
+    const parentPerms = context.parentConfig.permissions;
+    const childPerms = config.permissions;
+    const childRank = SCOPE_RANK[childPerms.scopeType] ?? 0;
+    const parentRank = SCOPE_RANK[parentPerms.scopeType] ?? 0;
+    const violations: string[] = [];
+
+    if (childRank > parentRank) {
+      violations.push(
+        `Child scope '${childPerms.scopeType}' is broader than parent scope '${parentPerms.scopeType}'`,
+      );
+    }
+
+    const parentBoardSet = new Set(parentPerms.connectedBoards);
+    const extraBoards = childPerms.connectedBoards.filter(
+      (b) => !parentBoardSet.has(b),
+    );
+    if (extraBoards.length > 0) {
+      violations.push(
+        `Child has ${extraBoards.length} board(s) not in parent: ${extraBoards.join(', ')}`,
+      );
+    }
+
+    const parentDocSet = new Set(parentPerms.connectedDocs);
+    const extraDocs = childPerms.connectedDocs.filter(
+      (d) => !parentDocSet.has(d),
+    );
+    if (extraDocs.length > 0) {
+      violations.push(
+        `Child has ${extraDocs.length} doc(s) not in parent: ${extraDocs.join(', ')}`,
+      );
+    }
+
+    const passed = violations.length === 0;
     return {
       ruleId: this.id,
       ruleName: this.name,
       severity: this.severity,
-      passed: false,
-      message: `Agent has parent agent (${config.permissions.parentAgentId}). Child permissions cannot be verified without parent config — flagging for manual review.`,
-      recommendation:
-        'Verify that this agent does not have broader permissions than its parent agent.',
-      evidence: { parentAgentId: config.permissions.parentAgentId },
+      passed,
+      message: passed
+        ? `Child permissions do not exceed parent agent (${config.permissions.parentAgentId}).`
+        : `Child permissions exceed parent agent: ${violations.join('; ')}.`,
+      recommendation: passed
+        ? undefined
+        : 'Narrow child agent permissions to be a subset of the parent agent.',
+      evidence: {
+        parentAgentId: config.permissions.parentAgentId,
+        childScope: childPerms.scopeType,
+        parentScope: parentPerms.scopeType,
+        violations,
+      },
       owaspAsi: this.owaspAsi,
     };
   },

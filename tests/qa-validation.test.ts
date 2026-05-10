@@ -271,7 +271,7 @@ describe('QA — Rule metadata (17 rules with sled-grant)', () => {
 });
 
 describe('QA — Auditor edge cases', () => {
-  it('KB-002: goal with only short tokens yields empty goalWords and fails relevance', () => {
+  it('KB-002: goal with only short/stop-word tokens passes as too-generic', () => {
     const cfg: AgentConfig = {
       agentId: 'a',
       agentName: 'b',
@@ -295,7 +295,8 @@ describe('QA — Auditor edge cases', () => {
       skills: [],
     };
     const r = kb002.check(cfg);
-    expect(r.passed).toBe(false);
+    expect(r.passed).toBe(true);
+    expect(r.message).toContain('too generic');
   });
 
   it('TR-001: column match is case-insensitive', () => {
