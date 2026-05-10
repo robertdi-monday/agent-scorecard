@@ -75,7 +75,7 @@
           "displayName": { "type": "string" },
           "type": {
             "type": "string",
-            "enum": ["builtin", "custom", "app-feature"]
+            "enum": ["builtin", "custom", "app-feature", "mcp"]
           },
           "connectionStatus": {
             "type": "string",

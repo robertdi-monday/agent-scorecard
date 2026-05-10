@@ -20,7 +20,7 @@ export interface AgentConfig {
   tools: Array<{
     name: string;
     displayName: string;
-    type: 'builtin' | 'custom' | 'app-feature';
+    type: 'builtin' | 'custom' | 'app-feature' | 'mcp';
     connectionStatus: 'ready' | 'connected' | 'not_connected';
     enabled: boolean;
     modifiesColumns?: string[];

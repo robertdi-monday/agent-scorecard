@@ -125,7 +125,7 @@ function validateConfig(data: unknown, filePath: string): AgentConfig {
         `Invalid config: tools[${i}].enabled must be a boolean in ${filePath}.`,
       );
     }
-    const VALID_TOOL_TYPES = ['builtin', 'custom', 'app-feature'];
+    const VALID_TOOL_TYPES = ['builtin', 'custom', 'app-feature', 'mcp'];
     const VALID_CONN_STATUS = ['ready', 'connected', 'not_connected'];
     requireEnum(toolObj, 'type', VALID_TOOL_TYPES, filePath, `tools[${i}].`);
     requireEnum(
