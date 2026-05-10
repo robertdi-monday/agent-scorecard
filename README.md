@@ -1,29 +1,42 @@
 # Agent Quality Scorecard
 
-Deterministic configuration audit CLI for monday.com Agent Builder agents. Runs offline against an agent's exported JSON config and produces a scored report with fix recommendations and OWASP ASI mappings.
+Deterministic configuration audit for monday.com Agent Builder agents. Ships as both a **monday.com embedded app** (fetches agent configs via API — zero export/upload) and a **CLI** for local/CI use. Produces a scored report with fix recommendations, OWASP ASI mappings, and optional adversarial simulation probes.
 
 ## Why
 
 Agent Builder has no quality gate before deployment. Tier 3 (customer-built) agents have caused hallucinations, runaway token loops, confidential data leaks, and silent malfunctions. This tool catches configuration issues before they reach production.
 
-## Quick Start
+## monday.com App (Primary Interface)
+
+The embedded app runs inside monday.com — no JSON export required. It calls the internal Agent Management API, maps the response, runs the audit, and renders the scorecard inline.
+
+The app is built with Vite and uses the monday SDK loaded via CDN. On mount it calls `monday.init()` to establish the host handshake, then fetches the current user's agents through the session-authenticated API.
+
+```bash
+npm run build:app      # Build to dist-app/
+```
+
+## CLI
+
+The CLI operates on exported agent config JSON files, useful for local debugging and CI gating.
 
 ```bash
 npm install
 npm run build
 
-# Run against a config file
 npx tsx src/cli.ts audit --config tests/fixtures/bad-agent.json --vertical sled-grant
 ```
 
-## Usage
+### Options
 
 ```
 agent-scorecard audit
-  --config <path>        Required. Path to agent config JSON file.
-  --vertical <name>      Optional. Vertical rule pack (e.g., "sled-grant").
-  --format <type>        Optional. "cli" (default) or "json".
-  --output <path>        Optional. Write JSON report to file instead of stdout.
+  --config <path>            Required. Path to agent config JSON file.
+  --vertical <name>          Optional. Vertical rule pack (e.g., "sled-grant").
+  --parent-config <path>     Optional. Parent agent config for PM-002 inheritance check.
+  --simulate                 Optional. Run adversarial simulation probes.
+  --format <type>            Optional. "cli" (default) or "json".
+  --output <path>            Optional. Write JSON report to file instead of stdout.
 ```
 
 ### Examples
@@ -35,15 +48,20 @@ npx tsx src/cli.ts audit --config agent.json
 # With SLED vertical rules
 npx tsx src/cli.ts audit --config agent.json --vertical sled-grant
 
-# JSON output to file
-npx tsx src/cli.ts audit --config agent.json --format json --output report.json
+# JSON output with simulation
+npx tsx src/cli.ts audit --config agent.json --simulate --format json --output report.json
+
+# Child agent with parent comparison
+npx tsx src/cli.ts audit --config child.json --parent-config parent.json
 ```
+
+Exit code `1` when deployment recommendation is `not-ready`; `2` on config load error.
 
 ## Audit Rules
 
-17 rules across 6 categories. Universal rules always run; vertical rules run when `--vertical` is specified.
+28 rules across 8 categories. Universal rules always run; vertical rules run when `--vertical` is specified.
 
-### Universal (13 rules)
+### Universal (24 rules)
 
 | Rule | Severity | Category | Description |
 |------|----------|----------|-------------|
@@ -60,6 +78,17 @@ npx tsx src/cli.ts audit --config agent.json --format json --output report.json
 | IN-002 | Critical | Instructions | Must contain guardrail keywords |
 | IN-003 | Warning | Instructions | Should contain error-handling guidance |
 | IN-004 | Warning | Instructions | Should define scope boundaries |
+| EF-001 | Warning | Efficiency | Instructions should not contain repeated phrases |
+| EF-002 | Warning | Efficiency | Agents with many tools need adequate instructions |
+| EF-003 | Critical | Efficiency | Skills should not reference each other in a cycle |
+| EF-004 | Info | Efficiency | Instructions should have high information density |
+| EF-005 | Info | Efficiency | KB files should not have highly similar names |
+| SC-001 | Critical | Security | Instructions must defend against prompt injection |
+| SC-002 | Critical | Security | Read+write agents must have data handling restrictions |
+| SC-003 | Warning | Security | Account-level agents with many tools need human-in-the-loop |
+| SC-004 | Warning | Security | Sensitive column writes need write-guard instructions |
+| SC-005 | Critical | Security | External web access tools must have URL restrictions |
+| SC-006 | Warning | Security | Board-writing agents should validate output before writing |
 
 ### SLED Grant Vertical (4 rules)
 
@@ -69,6 +98,21 @@ npx tsx src/cli.ts audit --config agent.json --format json --output report.json
 | SLED-002 | Critical | Instructions must prohibit fabrication of financial figures |
 | SLED-003 | Warning | KB should include eligibility-related files |
 | SLED-004 | Warning | Instructions should reference compliance terms (EDGAR, SAM.gov, etc.) |
+
+## Simulation Probes
+
+When `--simulate` is passed (CLI) or enabled in the app, six adversarial probes run against the config. Each yields a verdict of `resilient`, `partial`, or `vulnerable` with a resilience score.
+
+| Probe | What it tests |
+|-------|---------------|
+| Prompt Injection | Defenses against instruction override attempts |
+| Tool Misuse | Whether tools can be coerced beyond intended use |
+| Scope Escape | Whether the agent can act outside its permission boundary |
+| Hallucination | Susceptibility to fabricating data without KB grounding |
+| Error Cascade | Whether failures in one step can cascade uncontrolled |
+| Data Exfiltration | Whether sensitive data can be extracted via tools |
+
+Overall score blends **60% config audit + 40% simulation resilience**. A `vulnerable` probe verdict triggers the same grade cap as a failed critical rule.
 
 ## Scoring
 
@@ -81,10 +125,11 @@ npx tsx src/cli.ts audit --config agent.json --format json --output report.json
 
 | OWASP ASI | Risk | Rules |
 |-----------|------|-------|
-| ASI-01 | Agent Goal Hijack | IN-002, IN-004 |
-| ASI-02 | Tool Misuse | TL-001, TL-002 |
+| ASI-01 | Agent Goal Hijack | IN-002, IN-004, SC-001 |
+| ASI-02 | Tool Misuse | TL-001, TL-002, SC-003 |
 | ASI-03 | Identity & Privilege Abuse | PM-001, PM-002 |
-| ASI-08 | Cascading Failures | TR-001, TR-002 |
+| ASI-04 | Data Exfiltration | SC-002, SC-005 |
+| ASI-08 | Cascading Failures | TR-001, TR-002, EF-003 |
 
 ## JSON Report Contract
 
@@ -101,21 +146,29 @@ When using `--format json`, the output follows the `ScorecardReport` interface d
 
 **Invariant:** `passed + failed + warnings + infoIssues === totalChecks`
 
+When `--simulate` is included, `layers.simulation` is also present with `overallResilience`, probe counts, and per-probe results.
+
 ## Agent Config Schema
 
 The CLI expects a JSON file matching the `AgentConfig` interface. See [`src/config/types.ts`](src/config/types.ts) for the full schema and [`tests/fixtures/`](tests/fixtures/) for examples.
 
 A JSON Schema definition is also available at [`schemas/agent-config.schema.json`](schemas/agent-config.schema.json) — maintained in-repo until monday publishes an official export schema.
 
+## API Mapper
+
+The embedded app fetches agents from `GET /monday-agents/agent-management/agents-by-user` and converts the response via `mapApiResponseToConfig()` in [`src/mapper/api-to-config.ts`](src/mapper/api-to-config.ts). The internal API types are defined in [`src/mapper/api-types.ts`](src/mapper/api-types.ts).
+
 ## Development
 
 ```bash
-npm run build           # TypeScript compile
+npm run build           # TypeScript compile (CLI + library)
+npm run build:app       # Vite build (monday.com app → dist-app/)
 npm test                # Run all tests (vitest)
 npm run test:watch      # Watch mode
+npm run test:coverage   # With coverage
 npm run lint            # Type-check
 npm run prettier:check  # Format check
-npm run verify          # Full CI-equivalent: lint + prettier + build + test
+npm run verify          # Full CI-equivalent: lint + prettier + test + validate:schema
 ```
 
 ## Fixtures
@@ -125,8 +178,6 @@ Test fixtures in [`tests/fixtures/`](tests/fixtures/) should mirror sanitized re
 1. Update fixtures to match the new shape.
 2. Update [`schemas/agent-config.schema.json`](schemas/agent-config.schema.json) accordingly.
 3. Run `npm run validate:schema` to confirm alignment.
-
-The JSON Schema is maintained in-repo until monday publishes an official export schema.
 
 ## Project Structure
 
@@ -141,19 +192,36 @@ src/
 ├── auditors/
 │   ├── runner.ts                   # Orchestrates all auditors
 │   ├── auditor-utils.ts            # Shared utility functions
-│   ├── knowledge-base-auditor.ts   # KB-001, KB-002, KB-003
-│   ├── permission-auditor.ts       # PM-001, PM-002
-│   ├── tool-auditor.ts             # TL-001, TL-002
-│   ├── trigger-auditor.ts          # TR-001, TR-002
-│   ├── instruction-auditor.ts      # IN-001, IN-002, IN-003, IN-004
-│   └── sled-auditor.ts             # SLED-001 through SLED-004
+│   ├── knowledge-base-auditor.ts   # KB-001 – KB-003
+│   ├── permission-auditor.ts       # PM-001 – PM-002
+│   ├── tool-auditor.ts             # TL-001 – TL-002
+│   ├── trigger-auditor.ts          # TR-001 – TR-002
+│   ├── instruction-auditor.ts      # IN-001 – IN-004
+│   ├── efficiency-auditor.ts       # EF-001 – EF-005
+│   ├── security-auditor.ts         # SC-001 – SC-006
+│   └── sled-auditor.ts             # SLED-001 – SLED-004
 ├── scoring/
 │   └── aggregator.ts               # Weighted scoring + grade calculation
+├── simulation/
+│   ├── simulator.ts                # Orchestrates all probes
+│   ├── types.ts                    # SimulationProbe, SimulationSummary
+│   └── probes/                     # 6 adversarial probes
+├── mapper/
+│   ├── api-types.ts                # Internal API response types
+│   └── api-to-config.ts            # API response → AgentConfig
+├── helpers/
+│   └── text-analysis.ts            # Shared text utilities
 ├── report/
-│   └── config-audit-summary.ts     # Layer summary rollup
-└── output/
-    ├── cli-reporter.ts             # Colored terminal table
-    └── json-reporter.ts            # JSON serialization
+│   ├── config-audit-summary.ts     # Config layer summary rollup
+│   └── simulation-summary.ts       # Simulation layer summary
+├── output/
+│   ├── cli-reporter.ts             # Colored terminal table
+│   └── json-reporter.ts            # JSON serialization
+└── app/                            # monday.com embedded app (Vite + React)
+    ├── index.html                  # Entry HTML (loads monday SDK via CDN)
+    ├── app.tsx                     # Root component (monday.init + audit flow)
+    ├── hooks/                      # useAgentConfig, useAudit
+    └── components/                 # AgentPicker, ScoreCard, RuleResults, etc.
 ```
 
 ## Security Considerations
