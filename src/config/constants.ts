@@ -1,9 +1,17 @@
 import { createRequire } from 'node:module';
 
-// Assumes unbundled Node.js execution (CLI tool). If this library is ever bundled
-// (esbuild/webpack), this require path will need a bundler-specific resolution.
-const _require = createRequire(import.meta.url);
-const _pkg = _require('../../package.json') as { version: string };
+// In the browser (Vite build), __SCORECARD_VERSION__ is injected via `define`.
+// In Node.js, we read package.json at runtime.
+declare const __SCORECARD_VERSION__: string | undefined;
+
+const _version: string =
+  typeof __SCORECARD_VERSION__ !== 'undefined'
+    ? __SCORECARD_VERSION__
+    : (
+        createRequire(import.meta.url)('../../package.json') as {
+          version: string;
+        }
+      ).version;
 
 // ── Severity weights for scoring ─────────────────────────────────────────────
 
@@ -536,4 +544,4 @@ export const KB_RELEVANCE_STOP_WORDS = [
 
 // ── Version ──────────────────────────────────────────────────────────────────
 
-export const SCORECARD_VERSION: string = _pkg.version;
+export const SCORECARD_VERSION: string = _version;

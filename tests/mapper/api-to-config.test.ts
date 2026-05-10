@@ -55,9 +55,7 @@ describe('mapApiResponseToConfig', () => {
     expect(config.kind).toBe('PERSONAL');
     expect(config.state).toBe('ACTIVE');
     expect(config.instructions.goal).toBe('Help with project management');
-    expect(config.instructions.plan).toBe(
-      'Assist users with task tracking.',
-    );
+    expect(config.instructions.plan).toBe('Assist users with task tracking.');
     expect(config.instructions.userPrompt).toBe('Manage my board');
   });
 
@@ -220,9 +218,7 @@ describe('mapApiResponseToConfig', () => {
   });
 
   it('defaults unknown state to ACTIVE', () => {
-    const config = mapApiResponseToConfig(
-      makeFullResponse({ state: 'bogus' }),
-    );
+    const config = mapApiResponseToConfig(makeFullResponse({ state: 'bogus' }));
     expect(config.state).toBe('ACTIVE');
   });
 });
