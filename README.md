@@ -132,13 +132,15 @@ The JSON Schema is maintained in-repo until monday publishes an official export 
 
 ```
 src/
-├── cli.ts                          # Entry point
+├── cli.ts                          # CLI entry point
+├── index.ts                        # Library entry point
 ├── config/
 │   ├── types.ts                    # AgentConfig, AuditRule, ScorecardReport
 │   ├── constants.ts                # Keyword lists, thresholds, weights
 │   └── loader.ts                   # JSON loader with validation
 ├── auditors/
 │   ├── runner.ts                   # Orchestrates all auditors
+│   ├── auditor-utils.ts            # Shared utility functions
 │   ├── knowledge-base-auditor.ts   # KB-001, KB-002, KB-003
 │   ├── permission-auditor.ts       # PM-001, PM-002
 │   ├── tool-auditor.ts             # TL-001, TL-002
@@ -147,7 +149,17 @@ src/
 │   └── sled-auditor.ts             # SLED-001 through SLED-004
 ├── scoring/
 │   └── aggregator.ts               # Weighted scoring + grade calculation
+├── report/
+│   └── config-audit-summary.ts     # Layer summary rollup
 └── output/
     ├── cli-reporter.ts             # Colored terminal table
     └── json-reporter.ts            # JSON serialization
 ```
+
+## Security Considerations
+
+The `--config` and `--parent-config` arguments read any file path accessible to the
+current process. This is safe for local CLI usage but would be a path traversal risk
+if the tool were exposed as a network service. If you plan to run agent-scorecard
+behind an HTTP endpoint, sanitize and restrict config paths before passing them to
+`loadConfig()`.

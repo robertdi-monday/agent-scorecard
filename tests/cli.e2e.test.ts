@@ -68,6 +68,13 @@ describe('CLI audit (subprocess)', () => {
     expect(json.layers.configAudit.results.length).toBe(13);
   });
 
+  it('accepts --parent-config for PM-002 inheritance check', () => {
+    const config = join(fixturesDir, 'child-agent.json');
+    const parentCfg = join(fixturesDir, 'good-agent.json');
+    const r = runAuditCli(['--config', config, '--parent-config', parentCfg]);
+    expect(r.status).toBe(0);
+  });
+
   it('prints JSON to stdout when --format json without --output', () => {
     const config = join(fixturesDir, 'good-agent.json');
     const r = runAuditCli([

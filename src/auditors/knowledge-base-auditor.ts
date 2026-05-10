@@ -1,6 +1,7 @@
 import type { AgentConfig, AuditRule } from '../config/types.js';
 import {
   KB_STALENESS_DAYS,
+  KB_RELEVANCE_STOP_WORDS,
   ELIGIBILITY_FILE_KEYWORDS,
 } from '../config/constants.js';
 
@@ -54,11 +55,24 @@ const kb002: AuditRule = {
       };
     }
 
-    // Extract meaningful words from the goal (3+ chars, lowercased)
+    const stopWords = new Set(KB_RELEVANCE_STOP_WORDS);
     const goalWords = config.instructions.goal
       .toLowerCase()
       .split(/\W+/)
-      .filter((w) => w.length >= 3);
+      .filter((w) => w.length >= 3)
+      .filter((w) => !stopWords.has(w));
+
+    if (goalWords.length === 0) {
+      return {
+        ruleId: this.id,
+        ruleName: this.name,
+        severity: this.severity,
+        passed: true,
+        message:
+          'Goal text too generic for filename relevance check — all tokens are common words.',
+        evidence: { goalWords: [], fileNames: files.map((f) => f.fileName) },
+      };
+    }
 
     const fileNames = files.map((f) => f.fileName.toLowerCase());
     const matchingFiles = fileNames.filter((name) =>

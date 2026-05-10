@@ -1,3 +1,10 @@
+import { createRequire } from 'node:module';
+
+// Assumes unbundled Node.js execution (CLI tool). If this library is ever bundled
+// (esbuild/webpack), this require path will need a bundler-specific resolution.
+const _require = createRequire(import.meta.url);
+const _pkg = _require('../../package.json') as { version: string };
+
 // ── Severity weights for scoring ─────────────────────────────────────────────
 
 export const SEVERITY_WEIGHTS = {
@@ -171,6 +178,79 @@ export const UNNECESSARY_TOOL_PATTERNS: Array<{
   },
 ];
 
+// ── KB-002: Stop words for relevance heuristic ─────────────────────────────
+
+export const KB_RELEVANCE_STOP_WORDS = [
+  'the',
+  'and',
+  'for',
+  'with',
+  'that',
+  'this',
+  'from',
+  'are',
+  'was',
+  'were',
+  'been',
+  'have',
+  'has',
+  'had',
+  'will',
+  'can',
+  'may',
+  'should',
+  'could',
+  'would',
+  'all',
+  'any',
+  'some',
+  'other',
+  'than',
+  'into',
+  'our',
+  'their',
+  'your',
+  'its',
+  'her',
+  'his',
+  'not',
+  'but',
+  'also',
+  'more',
+  'most',
+  'very',
+  'help',
+  'data',
+  'file',
+  'files',
+  'use',
+  'used',
+  'make',
+  'does',
+  'set',
+  'get',
+  'new',
+  'way',
+  'about',
+  'each',
+  'them',
+  'then',
+  'when',
+  'who',
+  'how',
+  'what',
+  'which',
+  'where',
+  'why',
+  'assist',
+  'manage',
+  'handle',
+  'process',
+  'track',
+  'based',
+  'using',
+];
+
 // ── Version ──────────────────────────────────────────────────────────────────
 
-export const SCORECARD_VERSION = '0.2.0';
+export const SCORECARD_VERSION: string = _pkg.version;

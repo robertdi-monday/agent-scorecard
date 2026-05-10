@@ -10,6 +10,7 @@ export { formatCliReport } from './output/cli-reporter.js';
 
 export type {
   AgentConfig,
+  AuditContext,
   AuditRule,
   AuditResult,
   Severity,

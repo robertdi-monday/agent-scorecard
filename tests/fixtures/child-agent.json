@@ -1,0 +1,46 @@
+{
+  "agentId": "agent-child-001",
+  "agentName": "Grant Eligibility Checker",
+  "kind": "ACCOUNT_LEVEL",
+  "state": "ACTIVE",
+  "instructions": {
+    "goal": "Screen grant applicants for eligibility based on uploaded criteria documents and federal guidelines.",
+    "plan": "## Grant Eligibility Checker — Execution Plan\n\nYou are a child agent of the SLED Grant Management Assistant, focused on eligibility screening.\n\n### Core Responsibilities\n1. Review applicant data against eligibility criteria from knowledge base.\n2. Flag incomplete or non-compliant applications.\n\n### Guardrails\n- Never fabricate eligibility determinations. If data is unavailable, say so explicitly.\n- Escalate if unsure about any eligibility decision — defer to official guidelines.\n- Do not guess or assume applicant financial data.\n\n### Error Handling\n- If the tool fails to retrieve board data, report the error and suggest manual verification.\n- When data is missing from an application, flag the specific missing fields.\n\n### Scope Boundaries\n- Only operate on the Eligibility Screening board.\n- Restricted to eligibility screening tasks — do not assist with grant tracking or compliance.\n- Outside your scope: budget forecasting, procurement, and HR questions.",
+    "userPrompt": "Check whether this applicant meets the eligibility criteria."
+  },
+  "knowledgeBase": {
+    "files": [
+      {
+        "fileName": "Pell-Grant-Eligibility-Criteria.docx",
+        "sourceType": "file",
+        "lastUpdated": "2026-04-20T00:00:00Z"
+      }
+    ]
+  },
+  "tools": [
+    {
+      "name": "monday-read-only",
+      "displayName": "monday.com Read",
+      "type": "builtin",
+      "connectionStatus": "ready",
+      "enabled": true
+    }
+  ],
+  "triggers": [
+    {
+      "name": "When item created on Eligibility Screening board",
+      "blockReferenceId": "14849201",
+      "triggerType": "item_created",
+      "triggerConfig": {
+        "boardId": "11111"
+      }
+    }
+  ],
+  "permissions": {
+    "scopeType": "board",
+    "connectedBoards": ["11111"],
+    "connectedDocs": [],
+    "parentAgentId": "agent-sled-001"
+  },
+  "skills": []
+}

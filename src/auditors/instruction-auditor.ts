@@ -6,23 +6,7 @@ import {
   ERROR_HANDLING_KEYWORDS,
   SCOPE_BOUNDARY_KEYWORDS,
 } from '../config/constants.js';
-
-/** Combine all instruction text for analysis. */
-function getInstructionText(config: AgentConfig): string {
-  return [
-    config.instructions.goal,
-    config.instructions.plan,
-    config.instructions.userPrompt,
-  ]
-    .filter(Boolean)
-    .join(' ');
-}
-
-/** Case-insensitive keyword scan — returns matched keywords. */
-function findKeywords(text: string, keywords: string[]): string[] {
-  const lower = text.toLowerCase();
-  return keywords.filter((kw) => lower.includes(kw.toLowerCase()));
-}
+import { findKeywords, getInstructionText } from './auditor-utils.js';
 
 /**
  * IN-001 (warning): Instruction text length — too short or too long.

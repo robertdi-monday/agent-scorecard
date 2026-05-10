@@ -6,24 +6,9 @@ import {
   ELIGIBILITY_FILE_KEYWORDS,
   COMPLIANCE_KEYWORDS,
 } from '../config/constants.js';
+import { findKeywords, getInstructionText } from './auditor-utils.js';
 
 const VERTICAL = 'sled-grant';
-
-/** Case-insensitive keyword scan. */
-function findKeywords(text: string, keywords: string[]): string[] {
-  const lower = text.toLowerCase();
-  return keywords.filter((kw) => lower.includes(kw.toLowerCase()));
-}
-
-function getInstructionText(config: AgentConfig): string {
-  return [
-    config.instructions.goal,
-    config.instructions.plan,
-    config.instructions.userPrompt,
-  ]
-    .filter(Boolean)
-    .join(' ');
-}
 
 /**
  * SLED-001 (critical): Instructions must mention deadline accuracy/verification.

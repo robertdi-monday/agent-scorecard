@@ -1,4 +1,9 @@
-import type { AgentConfig, AuditResult, AuditRule } from '../config/types.js';
+import type {
+  AgentConfig,
+  AuditContext,
+  AuditResult,
+  AuditRule,
+} from '../config/types.js';
 import { knowledgeBaseRules } from './knowledge-base-auditor.js';
 import { permissionRules } from './permission-auditor.js';
 import { toolRules } from './tool-auditor.js';
@@ -38,7 +43,8 @@ export function getRulesForVertical(vertical?: string): AuditRule[] {
 export function runAudit(
   config: AgentConfig,
   vertical?: string,
+  context?: AuditContext,
 ): AuditResult[] {
   const rules = getRulesForVertical(vertical);
-  return rules.map((rule) => rule.check(config));
+  return rules.map((rule) => rule.check(config, context));
 }

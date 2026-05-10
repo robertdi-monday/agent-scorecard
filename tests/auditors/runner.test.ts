@@ -75,6 +75,28 @@ describe('runAudit', () => {
     expect(runAudit(cfg)).toHaveLength(13);
     expect(runAudit(cfg, 'sled-grant')).toHaveLength(17);
   });
+
+  it('passes audit context through to rules', () => {
+    const cfg = {
+      ...minimalAgent(),
+      permissions: {
+        scopeType: 'board' as const,
+        connectedBoards: ['111'],
+        connectedDocs: [],
+        parentAgentId: 'parent-1',
+      },
+    };
+    const parent = minimalAgent();
+    parent.permissions = {
+      scopeType: 'workspace',
+      connectedBoards: ['111', '222'],
+      connectedDocs: [],
+    };
+    const results = runAudit(cfg, undefined, { parentConfig: parent });
+    const pm002 = results.find((r) => r.ruleId === 'PM-002');
+    expect(pm002).toBeDefined();
+    expect(pm002!.passed).toBe(true);
+  });
 });
 
 describe('AuditRule contract', () => {
