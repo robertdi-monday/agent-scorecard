@@ -65,7 +65,7 @@ describe('CLI audit (subprocess)', () => {
     const json = JSON.parse(readFileSync(out, 'utf-8'));
     expect(json.metadata.agentId).toBeDefined();
     expect(json.layers.configAudit).toHaveProperty('infoIssues');
-    expect(json.layers.configAudit.results.length).toBe(13);
+    expect(json.layers.configAudit.results.length).toBe(24);
   });
 
   it('accepts --parent-config for PM-002 inheritance check', () => {

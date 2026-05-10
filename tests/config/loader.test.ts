@@ -266,4 +266,30 @@ describe('loadConfig', () => {
       loadConfig(writeConfig('1.json', JSON.stringify(base))),
     ).toThrow(/skills\[0\]\.name/);
   });
+
+  // ── Object overload tests ──────────────────────────────────────────────────
+
+  it('accepts a valid object directly', () => {
+    const obj = JSON.parse(minimalValidJson());
+    const cfg = loadConfig(obj);
+    expect(cfg.agentId).toBe('id-1');
+    expect(cfg.agentName).toBe('Agent');
+    expect(cfg.instructions.userPrompt).toBe('');
+  });
+
+  it('throws ConfigLoadError with <object> in message for invalid object', () => {
+    expect(() => loadConfig({} as Record<string, unknown>)).toThrow(
+      ConfigLoadError,
+    );
+    expect(() => loadConfig({} as Record<string, unknown>)).toThrow(
+      /<object>/,
+    );
+  });
+
+  it('throws when object is missing required fields', () => {
+    const obj = JSON.parse(minimalValidJson());
+    delete obj.agentId;
+    expect(() => loadConfig(obj)).toThrow(ConfigLoadError);
+    expect(() => loadConfig(obj)).toThrow(/agentId/);
+  });
 });

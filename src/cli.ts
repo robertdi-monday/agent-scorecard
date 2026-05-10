@@ -5,7 +5,12 @@ import { writeFileSync } from 'node:fs';
 import { loadConfig, ConfigLoadError } from './config/loader.js';
 import { SCORECARD_VERSION } from './config/constants.js';
 import { runAudit } from './auditors/runner.js';
-import { calculateScore, buildRecommendations } from './scoring/aggregator.js';
+import {
+  calculateScore,
+  calculateOverallScore,
+  buildRecommendations,
+} from './scoring/aggregator.js';
+import { runSimulation } from './simulation/simulator.js';
 import { formatJsonReport } from './output/json-reporter.js';
 import { formatCliReport } from './output/cli-reporter.js';
 import { summarizeConfigAuditLayer } from './report/config-audit-summary.js';
@@ -29,6 +34,10 @@ program
     '--parent-config <path>',
     'Path to parent agent config for PM-002 inheritance check',
   )
+  .option(
+    '--simulate',
+    'Run adversarial simulation probes in addition to config audit',
+  )
   .option('--format <type>', 'Output format: "cli" (default) or "json"', 'cli')
   .option('--output <path>', 'Write JSON output to file instead of stdout')
   .action(
@@ -36,6 +45,7 @@ program
       config: string;
       vertical?: string;
       parentConfig?: string;
+      simulate?: boolean;
       format: string;
       output?: string;
     }) => {
@@ -51,8 +61,30 @@ program
         const results = runAudit(config, options.vertical, context);
 
         // 3. Score
-        const score = calculateScore(results);
         const layer = summarizeConfigAuditLayer(results);
+        const phasesRun: string[] = ['config-audit'];
+
+        let score;
+        let simulationLayer: ScorecardReport['layers']['simulation'];
+
+        if (options.simulate) {
+          const simSummary = runSimulation(config);
+          score = calculateOverallScore({
+            configAuditResults: results,
+            simulationSummary: simSummary,
+          });
+          simulationLayer = {
+            overallResilience: simSummary.overallResilience,
+            probeCount: simSummary.probeCount,
+            resilient: simSummary.resilient,
+            partial: simSummary.partial,
+            vulnerable: simSummary.vulnerable,
+            results: simSummary.results,
+          };
+          phasesRun.push('simulation');
+        } else {
+          score = calculateScore(results);
+        }
 
         // 4. Build report
         const report: ScorecardReport = {
@@ -62,14 +94,14 @@ program
             vertical: options.vertical,
             timestamp: new Date().toISOString(),
             scorecardVersion: SCORECARD_VERSION,
-            phasesRun: ['config-audit'],
+            phasesRun,
           },
           overallScore: score.score,
           overallGrade: score.grade,
           deploymentRecommendation: score.deploymentRecommendation,
           layers: {
             configAudit: {
-              score: score.score,
+              score: calculateScore(results).score,
               totalChecks: layer.totalChecks,
               passed: layer.passed,
               failed: layer.failed,
@@ -77,6 +109,7 @@ program
               infoIssues: layer.infoIssues,
               results,
             },
+            ...(simulationLayer ? { simulation: simulationLayer } : {}),
           },
           recommendations: buildRecommendations(results),
         };

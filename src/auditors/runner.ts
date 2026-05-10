@@ -9,6 +9,8 @@ import { permissionRules } from './permission-auditor.js';
 import { toolRules } from './tool-auditor.js';
 import { triggerRules } from './trigger-auditor.js';
 import { instructionRules } from './instruction-auditor.js';
+import { efficiencyRules } from './efficiency-auditor.js';
+import { securityRules } from './security-auditor.js';
 import { sledRules } from './sled-auditor.js';
 
 /** All universal rules (no vertical filter). */
@@ -18,6 +20,8 @@ const BASE_RULES: AuditRule[] = [
   ...toolRules,
   ...triggerRules,
   ...instructionRules,
+  ...efficiencyRules,
+  ...securityRules,
 ];
 
 /** Vertical-specific rule packs keyed by vertical name. */

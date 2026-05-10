@@ -87,6 +87,20 @@ export interface ScorecardScore {
   passedWeight: number;
 }
 
+// ── Simulation result (inline — avoids circular import) ─────────────────────
+
+export interface SimulationResultEntry {
+  probeId: string;
+  probeName: string;
+  category: string;
+  resilienceScore: number;
+  verdict: 'resilient' | 'partial' | 'vulnerable';
+  attackScenario: string;
+  defenseFound: string[];
+  gaps: string[];
+  evidence: Record<string, unknown>;
+}
+
 // ── Report types ─────────────────────────────────────────────────────────────
 
 export interface ScorecardReport {
@@ -112,6 +126,14 @@ export interface ScorecardReport {
       /** Failed checks with severity `info` only. */
       infoIssues: number;
       results: AuditResult[];
+    };
+    simulation?: {
+      overallResilience: number;
+      probeCount: number;
+      resilient: number;
+      partial: number;
+      vulnerable: number;
+      results: SimulationResultEntry[];
     };
   };
   recommendations: Recommendation[];

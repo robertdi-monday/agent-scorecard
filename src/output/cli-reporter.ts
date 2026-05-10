@@ -4,6 +4,7 @@ import type {
   ScorecardReport,
   AuditResult,
   Recommendation,
+  SimulationResultEntry,
 } from '../config/types.js';
 
 /**
@@ -17,6 +18,11 @@ export function formatCliReport(report: ScorecardReport): string {
 
   // ── Config Audit Results ───────────────────────────────────────────────────
   sections.push(formatResultsTable(report.layers.configAudit.results));
+
+  // ── Simulation Results ────────────────────────────────────────────────────
+  if (report.layers.simulation) {
+    sections.push(formatSimulationSection(report.layers.simulation));
+  }
 
   // ── Recommendations ────────────────────────────────────────────────────────
   if (report.recommendations.length > 0) {
@@ -55,6 +61,22 @@ function formatHeader(report: ScorecardReport): string {
     `  Overall Score:  ${gradeColor(String(report.overallScore) + '/100')}`,
     `  Grade:          ${gradeColor(report.overallGrade)}`,
     `  Recommendation: ${recColor(report.deploymentRecommendation)}`,
+  );
+
+  if (report.layers.simulation) {
+    const sim = report.layers.simulation;
+    const resColor =
+      sim.overallResilience >= 70
+        ? chalk.green
+        : sim.overallResilience >= 40
+          ? chalk.yellow
+          : chalk.red;
+    lines.push(
+      `  Resilience:     ${resColor(String(sim.overallResilience) + '/100')} (${sim.resilient} resilient · ${sim.partial} partial · ${sim.vulnerable} vulnerable)`,
+    );
+  }
+
+  lines.push(
     '',
     `  Checks:         ${report.layers.configAudit.totalChecks} total · ${chalk.green(String(report.layers.configAudit.passed) + ' passed')} · ${chalk.red(String(report.layers.configAudit.failed) + ' failed')} · ${chalk.yellow(String(report.layers.configAudit.warnings) + ' warnings')} · ${chalk.blue(String(report.layers.configAudit.infoIssues) + ' info')}`,
   );
@@ -94,6 +116,47 @@ function formatResultsTable(results: AuditResult[]): string {
   }
 
   return table.toString();
+}
+
+function formatSimulationSection(
+  sim: NonNullable<ScorecardReport['layers']['simulation']>,
+): string {
+  const table = new Table({
+    head: [
+      chalk.bold('Probe'),
+      chalk.bold('Score'),
+      chalk.bold('Verdict'),
+      chalk.bold('Attack Scenario'),
+    ],
+    colWidths: [28, 8, 14, 54],
+    wordWrap: true,
+    style: { head: [], border: [] },
+  });
+
+  for (const r of sim.results) {
+    const verdictStr = formatVerdict(r.verdict);
+    table.push([
+      `${r.probeId}: ${r.probeName}`,
+      String(r.resilienceScore),
+      verdictStr,
+      r.attackScenario,
+    ]);
+  }
+
+  return (
+    chalk.bold.underline('Simulation Probes') + '\n\n' + table.toString()
+  );
+}
+
+function formatVerdict(verdict: SimulationResultEntry['verdict']): string {
+  switch (verdict) {
+    case 'resilient':
+      return chalk.green('RESILIENT');
+    case 'partial':
+      return chalk.yellow('PARTIAL');
+    case 'vulnerable':
+      return chalk.red.bold('VULNERABLE');
+  }
 }
 
 function formatRecommendations(recommendations: Recommendation[]): string {

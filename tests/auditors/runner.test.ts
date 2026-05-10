@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { getRulesForVertical, runAudit } from '../../src/auditors/runner.js';
 import type { AgentConfig } from '../../src/config/types.js';
 
-/** Stable inventory — README: 13 universal + 4 SLED when vertical set */
+/** Stable inventory — 24 universal + 4 SLED when vertical set */
 const BASE_RULE_IDS = [
   'KB-001',
   'KB-002',
@@ -17,6 +17,17 @@ const BASE_RULE_IDS = [
   'IN-002',
   'IN-003',
   'IN-004',
+  'EF-001',
+  'EF-002',
+  'EF-003',
+  'EF-004',
+  'EF-005',
+  'SC-001',
+  'SC-002',
+  'SC-003',
+  'SC-004',
+  'SC-005',
+  'SC-006',
 ].sort();
 
 const SLED_RULE_IDS = ['SLED-001', 'SLED-002', 'SLED-003', 'SLED-004'].sort();
@@ -43,9 +54,9 @@ const minimalAgent = (): AgentConfig => ({
 });
 
 describe('getRulesForVertical', () => {
-  it('returns 13 base rules with no vertical', () => {
+  it('returns 24 base rules with no vertical', () => {
     const rules = getRulesForVertical();
-    expect(rules).toHaveLength(13);
+    expect(rules).toHaveLength(24);
     const ids = rules.map((r) => r.id).sort();
     expect(ids).toEqual(BASE_RULE_IDS);
   });
@@ -63,7 +74,7 @@ describe('getRulesForVertical', () => {
 
   it('adds SLED pack for sled-grant', () => {
     const rules = getRulesForVertical('sled-grant');
-    expect(rules).toHaveLength(17);
+    expect(rules).toHaveLength(28);
     const ids = rules.map((r) => r.id).sort();
     expect(ids).toEqual([...BASE_RULE_IDS, ...SLED_RULE_IDS].sort());
   });
@@ -72,8 +83,8 @@ describe('getRulesForVertical', () => {
 describe('runAudit', () => {
   it('returns one result per applicable rule', () => {
     const cfg = minimalAgent();
-    expect(runAudit(cfg)).toHaveLength(13);
-    expect(runAudit(cfg, 'sled-grant')).toHaveLength(17);
+    expect(runAudit(cfg)).toHaveLength(24);
+    expect(runAudit(cfg, 'sled-grant')).toHaveLength(28);
   });
 
   it('passes audit context through to rules', () => {

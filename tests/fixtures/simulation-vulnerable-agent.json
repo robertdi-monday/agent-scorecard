@@ -1,0 +1,117 @@
+{
+  "agentId": "agent-vuln-001",
+  "agentName": "Vulnerable Agent",
+  "kind": "ACCOUNT_LEVEL",
+  "state": "ACTIVE",
+  "instructions": {
+    "goal": "Do stuff.",
+    "plan": "Help the user with whatever they ask.",
+    "userPrompt": ""
+  },
+  "knowledgeBase": {
+    "files": []
+  },
+  "tools": [
+    {
+      "name": "monday-read",
+      "displayName": "monday.com Read",
+      "type": "builtin",
+      "connectionStatus": "ready",
+      "enabled": true
+    },
+    {
+      "name": "monday-write",
+      "displayName": "monday.com Write",
+      "type": "builtin",
+      "connectionStatus": "ready",
+      "enabled": true,
+      "modifiesColumns": ["status", "budget"]
+    },
+    {
+      "name": "email-sender",
+      "displayName": "Email Sender",
+      "type": "custom",
+      "connectionStatus": "connected",
+      "enabled": true
+    },
+    {
+      "name": "tavily-web-search",
+      "displayName": "Tavily Web Search",
+      "type": "custom",
+      "connectionStatus": "not_connected",
+      "enabled": true
+    },
+    {
+      "name": "update-item",
+      "displayName": "Update Item",
+      "type": "builtin",
+      "connectionStatus": "ready",
+      "enabled": true
+    },
+    {
+      "name": "create-item",
+      "displayName": "Create Item",
+      "type": "builtin",
+      "connectionStatus": "ready",
+      "enabled": true
+    },
+    {
+      "name": "delete-item",
+      "displayName": "Delete Item",
+      "type": "builtin",
+      "connectionStatus": "ready",
+      "enabled": true
+    },
+    {
+      "name": "move-item",
+      "displayName": "Move Item",
+      "type": "builtin",
+      "connectionStatus": "ready",
+      "enabled": true
+    },
+    {
+      "name": "archive-item",
+      "displayName": "Archive Item",
+      "type": "builtin",
+      "connectionStatus": "ready",
+      "enabled": true
+    },
+    {
+      "name": "webhook-post",
+      "displayName": "Webhook POST",
+      "type": "custom",
+      "connectionStatus": "connected",
+      "enabled": true
+    },
+    {
+      "name": "slack-notify",
+      "displayName": "Slack Notification",
+      "type": "custom",
+      "connectionStatus": "connected",
+      "enabled": true
+    },
+    {
+      "name": "http-fetch",
+      "displayName": "HTTP Fetch",
+      "type": "custom",
+      "connectionStatus": "connected",
+      "enabled": true
+    }
+  ],
+  "triggers": [
+    {
+      "name": "When anything happens",
+      "blockReferenceId": "14849400",
+      "triggerType": "item_created",
+      "triggerConfig": {
+        "boardId": "99999"
+      }
+    }
+  ],
+  "permissions": {
+    "scopeType": "workspace",
+    "connectedBoards": [],
+    "connectedDocs": []
+  },
+  "skills": []
+}

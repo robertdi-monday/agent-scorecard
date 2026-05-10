@@ -475,7 +475,7 @@ describe('QA — Report structure invariants', () => {
 
 describe('QA — Runner routing', () => {
   it('empty string vertical uses base rules only', () => {
-    expect(getRulesForVertical('').map((r) => r.id)).toHaveLength(13);
+    expect(getRulesForVertical('').map((r) => r.id)).toHaveLength(24);
   });
 
   it('rule order is deterministic across calls', () => {

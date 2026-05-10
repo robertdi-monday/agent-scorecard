@@ -8,7 +8,16 @@ export class ConfigLoadError extends Error {
   }
 }
 
-export function loadConfig(filePath: string): AgentConfig {
+export function loadConfig(
+  pathOrObject: string | Record<string, unknown>,
+): AgentConfig {
+  if (typeof pathOrObject === 'string') {
+    return loadFromFile(pathOrObject);
+  }
+  return validateConfig(pathOrObject, '<object>');
+}
+
+function loadFromFile(filePath: string): AgentConfig {
   let raw: string;
   try {
     raw = readFileSync(filePath, 'utf-8');

@@ -5,6 +5,7 @@ import type {
   Recommendation,
   ScorecardScore,
 } from '../config/types.js';
+import type { SimulationSummary } from '../simulation/types.js';
 import { SEVERITY_WEIGHTS, GRADE_THRESHOLDS } from '../config/constants.js';
 
 /**
@@ -62,7 +63,53 @@ export function calculateScore(results: AuditResult[]): ScorecardScore {
   };
 }
 
-function scoreToGrade(score: number): Grade {
+// ── Multi-layer scoring ──────────────────────────────────────────────────────
+
+export interface MultiLayerInput {
+  configAuditResults: AuditResult[];
+  simulationSummary?: SimulationSummary;
+}
+
+/**
+ * Calculate overall score combining config audit and simulation layers.
+ * Weighted: config audit 60%, simulation 40%.
+ * Backward compatible: if no simulation, returns config-only score.
+ */
+export function calculateOverallScore(input: MultiLayerInput): ScorecardScore {
+  const configScore = calculateScore(input.configAuditResults);
+
+  if (!input.simulationSummary) {
+    return configScore;
+  }
+
+  const weightedScore =
+    configScore.score * 0.6 + input.simulationSummary.overallResilience * 0.4;
+  const score = Math.round(weightedScore * 10) / 10;
+
+  const hasVulnerableProbe = input.simulationSummary.results.some(
+    (r) => r.verdict === 'vulnerable',
+  );
+  const hasCriticalFailure =
+    configScore.hasCriticalFailure || hasVulnerableProbe;
+
+  let grade = scoreToGrade(score);
+  if (hasCriticalFailure && gradeRank(grade) < gradeRank('C')) {
+    grade = 'C';
+  }
+
+  return {
+    score,
+    grade,
+    deploymentRecommendation: gradeToRecommendation(grade),
+    hasCriticalFailure,
+    totalWeight: configScore.totalWeight,
+    passedWeight: configScore.passedWeight,
+  };
+}
+
+// ── Exported helpers ─────────────────────────────────────────────────────────
+
+export function scoreToGrade(score: number): Grade {
   if (score >= GRADE_THRESHOLDS.A) return 'A';
   if (score >= GRADE_THRESHOLDS.B) return 'B';
   if (score >= GRADE_THRESHOLDS.C) return 'C';
@@ -71,12 +118,12 @@ function scoreToGrade(score: number): Grade {
 }
 
 /** Lower rank = better grade. Used for the hard-fail cap comparison. */
-function gradeRank(grade: Grade): number {
+export function gradeRank(grade: Grade): number {
   const ranks: Record<Grade, number> = { A: 0, B: 1, C: 2, D: 3, F: 4 };
   return ranks[grade];
 }
 
-function gradeToRecommendation(grade: Grade): DeploymentRecommendation {
+export function gradeToRecommendation(grade: Grade): DeploymentRecommendation {
   if (grade === 'A') return 'ready';
   if (grade === 'B' || grade === 'C') return 'needs-fixes';
   return 'not-ready';

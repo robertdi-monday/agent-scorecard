@@ -1,7 +1,7 @@
 {
   "agentId": "agent-bad-001",
   "agentName": "Grant Helper",
-  "kind": "PERSONAL",
+  "kind": "ACCOUNT_LEVEL",
   "state": "ACTIVE",
   "instructions": {
     "goal": "Help with grants",
@@ -32,6 +32,27 @@
       "displayName": "Email Sender",
       "type": "custom",
       "connectionStatus": "connected",
+      "enabled": true
+    },
+    {
+      "name": "monday-read",
+      "displayName": "monday.com Read",
+      "type": "builtin",
+      "connectionStatus": "ready",
+      "enabled": true
+    },
+    {
+      "name": "update-item",
+      "displayName": "Update Item",
+      "type": "builtin",
+      "connectionStatus": "ready",
+      "enabled": true
+    },
+    {
+      "name": "create-item",
+      "displayName": "Create Item",
+      "type": "builtin",
+      "connectionStatus": "ready",
       "enabled": true
     }
   ],
