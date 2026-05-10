@@ -16,6 +16,15 @@ The app is built with Vite and uses the monday SDK loaded via CDN. On mount it c
 npm run build:app      # Build to dist-app/
 ```
 
+## Agent Builder (Agent-as-Auditor)
+
+The Scorecard Agent runs natively inside monday.com as an Agent Builder agent. It uses `get_agent` to fetch a target agent's configuration, runs 7 deterministic instruction checks and 4 LLM-powered semantic reviews using its own reasoning, calculates a severity-weighted score and letter grade, and writes all findings to a monday.com board.
+
+This covers a subset of the full rule set (11 of 28 rules) — specifically the instruction-level checks that don't require tool, KB, or permission data. No API key or external service is needed; the agent IS the LLM.
+
+- **Full spec:** [`AGENT_BUILDER_V1_SPEC.md`](AGENT_BUILDER_V1_SPEC.md)
+- **Setup guide:** [`docs/AGENT_BUILDER_SETUP.md`](docs/AGENT_BUILDER_SETUP.md)
+
 ## CLI
 
 The CLI operates on exported agent config JSON files, useful for local debugging and CI gating.

@@ -3,6 +3,8 @@ import type { AgentConfig } from '../../config/types.js';
 import { mapApiResponseToConfig } from '../../mapper/api-to-config.js';
 import type { InternalAgentResponse } from '../../mapper/api-types.js';
 
+export type ConfigSource = 'api' | 'manual';
+
 export interface UseAgentConfigResult {
   agents: AgentConfig[];
   selected: AgentConfig | null;
@@ -10,6 +12,9 @@ export interface UseAgentConfigResult {
   loading: boolean;
   error: string | null;
   refresh: () => void;
+  source: ConfigSource;
+  loadFromJson: (json: string) => string | null;
+  reset: () => void;
 }
 
 function getCsrfToken(): string {
@@ -30,31 +35,37 @@ async function fetchAgents(): Promise<InternalAgentResponse[]> {
   if (!res.ok) {
     throw new Error(`Agent fetch failed: ${res.status} ${res.statusText}`);
   }
-  return res.json();
+  const body = await res.text();
+  if (body.trimStart().startsWith('<')) {
+    throw new Error('API returned HTML — internal endpoint not available');
+  }
+  return JSON.parse(body);
 }
 
 export function useAgentConfig(): UseAgentConfigResult {
   const [agents, setAgents] = useState<AgentConfig[]>([]);
-  const [rawAgents, setRawAgents] = useState<InternalAgentResponse[]>([]);
   const [selected, setSelected] = useState<AgentConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [source, setSource] = useState<ConfigSource>('api');
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const raw = await fetchAgents();
-      setRawAgents(raw);
       const mapped = raw.map(mapApiResponseToConfig);
       setAgents(mapped);
+      setSource('api');
       if (mapped.length === 1) {
         setSelected(mapped[0]);
       } else {
         setSelected(null);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load agents');
+    } catch {
+      setSource('manual');
+      setAgents([]);
+      setSelected(null);
     } finally {
       setLoading(false);
     }
@@ -73,5 +84,51 @@ export function useAgentConfig(): UseAgentConfigResult {
     [agents],
   );
 
-  return { agents, selected, selectAgent, loading, error, refresh: load };
+  const loadFromJson = useCallback((json: string): string | null => {
+    try {
+      const parsed = JSON.parse(json);
+      const config: AgentConfig = {
+        agentId: parsed.agentId || 'manual-agent',
+        agentName: parsed.agentName || 'Imported Agent',
+        kind: parsed.kind || 'PERSONAL',
+        state: parsed.state || 'ACTIVE',
+        instructions: parsed.instructions || { goal: '', plan: '', userPrompt: '' },
+        knowledgeBase: parsed.knowledgeBase || { files: [] },
+        tools: parsed.tools || [],
+        triggers: parsed.triggers || [],
+        permissions: parsed.permissions || {
+          scopeType: 'board',
+          connectedBoards: [],
+          connectedDocs: [],
+        },
+        skills: parsed.skills || [],
+      };
+      setAgents([config]);
+      setSelected(config);
+      setSource('manual');
+      setError(null);
+      return null;
+    } catch (err) {
+      return err instanceof Error ? err.message : 'Invalid JSON';
+    }
+  }, []);
+
+  const reset = useCallback(() => {
+    setAgents([]);
+    setSelected(null);
+    setSource('manual');
+    setError(null);
+  }, []);
+
+  return {
+    agents,
+    selected,
+    selectAgent,
+    loading,
+    error,
+    refresh: load,
+    source,
+    loadFromJson,
+    reset,
+  };
 }

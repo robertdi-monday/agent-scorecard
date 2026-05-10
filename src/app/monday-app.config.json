@@ -9,5 +9,5 @@
       "description": "View the agent scorecard for this board's connected agent"
     }
   ],
-  "permissions": ["read:boards", "read:items"]
+  "permissions": ["read:boards", "read:items", "write:boards", "write:items"]
 }
