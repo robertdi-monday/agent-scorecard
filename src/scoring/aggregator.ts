@@ -6,6 +6,7 @@ import type {
   ScorecardScore,
 } from '../config/types.js';
 import type { SimulationSummary } from '../simulation/types.js';
+import type { LlmReviewSummary } from '../llm-review/types.js';
 import { SEVERITY_WEIGHTS, GRADE_THRESHOLDS } from '../config/constants.js';
 
 /**
@@ -68,29 +69,79 @@ export function calculateScore(results: AuditResult[]): ScorecardScore {
 export interface MultiLayerInput {
   configAuditResults: AuditResult[];
   simulationSummary?: SimulationSummary;
+  llmReviewSummary?: LlmReviewSummary;
+}
+
+export interface ScoringWeights {
+  configAudit: number;
+  simulation?: number;
+  llmReview?: number;
 }
 
 /**
- * Calculate overall score combining config audit and simulation layers.
- * Weighted: config audit 60%, simulation 40%.
- * Backward compatible: if no simulation, returns config-only score.
+ * Derive the scoring weights used for a given input combination.
+ * Deterministic from which layers are present:
+ *   - config only: 100%
+ *   - config + sim: 60/40
+ *   - config + sim + llm: 40/30/30
+ */
+export function deriveScoringWeights(input: MultiLayerInput): ScoringWeights {
+  if (input.llmReviewSummary && input.simulationSummary) {
+    return { configAudit: 0.4, simulation: 0.3, llmReview: 0.3 };
+  }
+  if (input.simulationSummary) {
+    return { configAudit: 0.6, simulation: 0.4 };
+  }
+  return { configAudit: 1.0 };
+}
+
+/**
+ * Calculate overall score combining available layers.
+ *
+ * Weight distribution is deterministic from which layers are present:
+ *   - config only:            100% config
+ *   - config + simulation:     60% config / 40% simulation
+ *   - config + sim + LLM:      40% config / 30% sim / 30% LLM
+ *
+ * Critical failure sources:
+ *   - Any failed critical config rule
+ *   - Any vulnerable simulation probe
+ *   - Failed LR-002 (Defense Quality, critical severity)
  */
 export function calculateOverallScore(input: MultiLayerInput): ScorecardScore {
   const configScore = calculateScore(input.configAuditResults);
 
-  if (!input.simulationSummary) {
+  if (!input.simulationSummary && !input.llmReviewSummary) {
     return configScore;
   }
 
-  const weightedScore =
-    configScore.score * 0.6 + input.simulationSummary.overallResilience * 0.4;
+  const weights = deriveScoringWeights(input);
+  let weightedScore = configScore.score * weights.configAudit;
+
+  if (input.simulationSummary && weights.simulation) {
+    weightedScore +=
+      input.simulationSummary.overallResilience * weights.simulation;
+  }
+
+  if (input.llmReviewSummary && weights.llmReview) {
+    weightedScore += input.llmReviewSummary.overallScore * weights.llmReview;
+  }
+
   const score = Math.round(weightedScore * 10) / 10;
 
-  const hasVulnerableProbe = input.simulationSummary.results.some(
-    (r) => r.verdict === 'vulnerable',
-  );
+  const hasVulnerableProbe =
+    input.simulationSummary?.results.some((r) => r.verdict === 'vulnerable') ??
+    false;
+
+  const hasFailedDefenseQuality =
+    input.llmReviewSummary?.results.some(
+      (r) => r.checkId === 'LR-002' && !r.passed,
+    ) ?? false;
+
   const hasCriticalFailure =
-    configScore.hasCriticalFailure || hasVulnerableProbe;
+    configScore.hasCriticalFailure ||
+    hasVulnerableProbe ||
+    hasFailedDefenseQuality;
 
   let grade = scoreToGrade(score);
   if (hasCriticalFailure && gradeRank(grade) < gradeRank('C')) {

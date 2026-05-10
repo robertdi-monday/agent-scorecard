@@ -29,6 +29,7 @@ function runPipeline(fixtureName: string, vertical?: string) {
       timestamp: new Date().toISOString(),
       scorecardVersion: SCORECARD_VERSION,
       phasesRun: ['config-audit'],
+      scoringWeights: { configAudit: 1.0 },
     },
     overallScore: score.score,
     overallGrade: score.grade,

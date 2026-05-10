@@ -1,4 +1,4 @@
-import React, { StrictMode, useEffect, useRef } from 'react';
+import React, { StrictMode, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useAgentConfig } from './hooks/useAgentConfig.js';
 import { useAudit } from './hooks/useAudit.js';
@@ -6,6 +6,8 @@ import { AgentPicker } from './components/AgentPicker.js';
 import { ScoreCard } from './components/ScoreCard.js';
 import { RuleResults } from './components/RuleResults.js';
 import { SimulationResults } from './components/SimulationResults.js';
+import { LlmReviewResults } from './components/LlmReviewResults.js';
+import { ApiKeySettings } from './components/ApiKeySettings.js';
 import { RecommendationPanel } from './components/RecommendationPanel.js';
 
 declare const mondaySdk: (() => {
@@ -15,6 +17,8 @@ declare const mondaySdk: (() => {
 
 function App() {
   const sdkInitialized = useRef(false);
+  const [apiKey, setApiKey] = useState('');
+
   useEffect(() => {
     if (!sdkInitialized.current && typeof mondaySdk !== 'undefined') {
       mondaySdk().init();
@@ -24,7 +28,7 @@ function App() {
 
   const { agents, selected, selectAgent, loading, error, refresh } =
     useAgentConfig();
-  const { report, loading: auditing } = useAudit(selected);
+  const { report, loading: auditing } = useAudit(selected, apiKey || undefined);
 
   if (loading) {
     return <CenteredMessage>Loading agents...</CenteredMessage>;
@@ -94,6 +98,8 @@ function App() {
         </div>
       )}
 
+      <ApiKeySettings apiKey={apiKey} onChange={setApiKey} />
+
       {auditing && <CenteredMessage>Running audit...</CenteredMessage>}
 
       {report && (
@@ -102,6 +108,12 @@ function App() {
           <RuleResults results={report.layers.configAudit.results} />
           {report.layers.simulation && (
             <SimulationResults results={report.layers.simulation.results} />
+          )}
+          {report.layers.llmReview && (
+            <LlmReviewResults
+              results={report.layers.llmReview.results}
+              tailoredFixes={report.layers.llmReview.tailoredFixes}
+            />
           )}
           <RecommendationPanel recommendations={report.recommendations} />
         </div>

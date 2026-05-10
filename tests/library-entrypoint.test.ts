@@ -52,6 +52,7 @@ describe('Library entrypoint', () => {
         timestamp: '2026-05-08T00:00:00Z',
         scorecardVersion: SCORECARD_VERSION,
         phasesRun: ['config-audit'] as string[],
+        scoringWeights: { configAudit: 1.0 },
       },
       overallScore: score.score,
       overallGrade: score.grade,

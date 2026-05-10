@@ -103,6 +103,27 @@ export interface SimulationResultEntry {
 
 // ── Report types ─────────────────────────────────────────────────────────────
 
+// ── LLM review result (inline — avoids circular import) ─────────────────────
+
+export interface LlmReviewResultEntry {
+  checkId: string;
+  checkName: string;
+  severity: Severity;
+  score: number;
+  passed: boolean;
+  message: string;
+  recommendation?: string;
+  rawResponse: Record<string, unknown>;
+  evidence: Record<string, unknown>;
+  owaspAsi?: string[];
+}
+
+export interface TailoredFixEntry {
+  relatedCheck: string;
+  instructionText: string;
+  placement: 'prepend' | 'append' | 'replace';
+}
+
 export interface ScorecardReport {
   metadata: {
     agentId: string;
@@ -111,6 +132,7 @@ export interface ScorecardReport {
     timestamp: string;
     scorecardVersion: string;
     phasesRun: string[];
+    scoringWeights: Record<string, number>;
   };
   overallScore: number;
   overallGrade: Grade;
@@ -134,6 +156,14 @@ export interface ScorecardReport {
       partial: number;
       vulnerable: number;
       results: SimulationResultEntry[];
+    };
+    llmReview?: {
+      overallScore: number;
+      checkCount: number;
+      passed: number;
+      failed: number;
+      results: LlmReviewResultEntry[];
+      tailoredFixes?: TailoredFixEntry[];
     };
   };
   recommendations: Recommendation[];

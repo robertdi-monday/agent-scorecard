@@ -6,6 +6,7 @@ export { runAudit, getRulesForVertical } from './auditors/runner.js';
 export {
   calculateScore,
   calculateOverallScore,
+  deriveScoringWeights,
   buildRecommendations,
   scoreToGrade,
   gradeRank,
@@ -22,6 +23,12 @@ export {
   jaccardSimilarity,
 } from './helpers/text-analysis.js';
 export { mapApiResponseToConfig } from './mapper/api-to-config.js';
+export { runLlmReview } from './llm-review/reviewer.js';
+export {
+  createAnthropicClient,
+  extractJson,
+  completeJson,
+} from './llm-review/llm-client.js';
 
 export type {
   AgentConfig,
@@ -35,6 +42,8 @@ export type {
   ScorecardReport,
   Recommendation,
   SimulationResultEntry,
+  LlmReviewResultEntry,
+  TailoredFixEntry,
 } from './config/types.js';
 
 export type {
@@ -44,5 +53,13 @@ export type {
   SimulationCategory,
 } from './simulation/types.js';
 
-export type { MultiLayerInput } from './scoring/aggregator.js';
+export type { MultiLayerInput, ScoringWeights } from './scoring/aggregator.js';
 export type { InternalAgentResponse } from './mapper/api-types.js';
+export type {
+  LlmClient,
+  LlmCallOptions,
+  LlmReviewCheck,
+  LlmReviewResult,
+  LlmReviewSummary,
+  TailoredFix,
+} from './llm-review/types.js';

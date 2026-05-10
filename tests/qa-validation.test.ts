@@ -89,6 +89,7 @@ function buildReport(
       timestamp: '2026-05-08T12:00:00Z',
       scorecardVersion: SCORECARD_VERSION,
       phasesRun: ['config-audit'],
+      scoringWeights: { configAudit: 1.0 },
     },
     overallScore: score.score,
     overallGrade: score.grade,

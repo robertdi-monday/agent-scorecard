@@ -11,6 +11,7 @@ function makeReport(overrides: Partial<ScorecardReport> = {}): ScorecardReport {
       timestamp: '2026-05-08T00:00:00Z',
       scorecardVersion: '0.1.0',
       phasesRun: ['config-audit'],
+      scoringWeights: { configAudit: 1.0 },
     },
     overallScore: 85,
     overallGrade: 'B',

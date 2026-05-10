@@ -8,8 +8,10 @@ import { runAudit } from './auditors/runner.js';
 import {
   calculateScore,
   calculateOverallScore,
+  deriveScoringWeights,
   buildRecommendations,
 } from './scoring/aggregator.js';
+import type { MultiLayerInput } from './scoring/aggregator.js';
 import { runSimulation } from './simulation/simulator.js';
 import { formatJsonReport } from './output/json-reporter.js';
 import { formatCliReport } from './output/cli-reporter.js';
@@ -38,41 +40,51 @@ program
     '--simulate',
     'Run adversarial simulation probes in addition to config audit',
   )
+  .option('--llm-review', 'Run LLM-in-the-loop semantic review')
+  .option(
+    '--llm-api-key <key>',
+    'Anthropic API key (or set ANTHROPIC_API_KEY env var)',
+  )
+  .option(
+    '--llm-model <model>',
+    'LLM model to use (default: claude-haiku-4-5-20251001)',
+  )
   .option('--format <type>', 'Output format: "cli" (default) or "json"', 'cli')
   .option('--output <path>', 'Write JSON output to file instead of stdout')
   .action(
-    (options: {
+    async (options: {
       config: string;
       vertical?: string;
       parentConfig?: string;
       simulate?: boolean;
+      llmReview?: boolean;
+      llmApiKey?: string;
+      llmModel?: string;
       format: string;
       output?: string;
     }) => {
       try {
-        // 1. Load config
         const config = loadConfig(options.config);
 
-        // 2. Run audit
         const context: AuditContext = {};
         if (options.parentConfig) {
           context.parentConfig = loadConfig(options.parentConfig);
         }
         const results = runAudit(config, options.vertical, context);
 
-        // 3. Score
         const layer = summarizeConfigAuditLayer(results);
         const phasesRun: string[] = ['config-audit'];
 
-        let score;
+        const multiLayerInput: MultiLayerInput = {
+          configAuditResults: results,
+        };
+
         let simulationLayer: ScorecardReport['layers']['simulation'];
+        let llmReviewLayer: ScorecardReport['layers']['llmReview'];
 
         if (options.simulate) {
           const simSummary = runSimulation(config);
-          score = calculateOverallScore({
-            configAuditResults: results,
-            simulationSummary: simSummary,
-          });
+          multiLayerInput.simulationSummary = simSummary;
           simulationLayer = {
             overallResilience: simSummary.overallResilience,
             probeCount: simSummary.probeCount,
@@ -82,11 +94,61 @@ program
             results: simSummary.results,
           };
           phasesRun.push('simulation');
-        } else {
-          score = calculateScore(results);
         }
 
-        // 4. Build report
+        if (options.llmReview) {
+          const apiKey =
+            options.llmApiKey || process.env.ANTHROPIC_API_KEY || '';
+          if (!apiKey) {
+            console.error(
+              'Error: --llm-review requires --llm-api-key or ANTHROPIC_API_KEY env var.',
+            );
+            process.exitCode = 2;
+            return;
+          }
+
+          const { createAnthropicClient } =
+            await import('./llm-review/llm-client.js');
+          const { runLlmReview } = await import('./llm-review/reviewer.js');
+
+          const client = createAnthropicClient(apiKey);
+          if (options.llmModel) {
+            const origComplete = client.complete.bind(client);
+            client.complete = (prompt, opts) =>
+              origComplete(prompt, { ...opts, model: options.llmModel });
+          }
+
+          const failedRules = results.filter((r) => !r.passed);
+          const simulationGaps =
+            multiLayerInput.simulationSummary?.results
+              .filter((r) => r.verdict !== 'resilient')
+              .flatMap((r) => r.gaps) ?? [];
+
+          const llmSummary = await runLlmReview(
+            config,
+            client,
+            failedRules,
+            simulationGaps,
+          );
+          multiLayerInput.llmReviewSummary = llmSummary;
+          llmReviewLayer = {
+            overallScore: llmSummary.overallScore,
+            checkCount: llmSummary.checkCount,
+            passed: llmSummary.passed,
+            failed: llmSummary.failed,
+            results: llmSummary.results,
+            tailoredFixes: llmSummary.tailoredFixes,
+          };
+          phasesRun.push('llm-review');
+        }
+
+        const score =
+          multiLayerInput.simulationSummary || multiLayerInput.llmReviewSummary
+            ? calculateOverallScore(multiLayerInput)
+            : calculateScore(results);
+
+        const weights = deriveScoringWeights(multiLayerInput);
+
         const report: ScorecardReport = {
           metadata: {
             agentId: config.agentId,
@@ -95,6 +157,7 @@ program
             timestamp: new Date().toISOString(),
             scorecardVersion: SCORECARD_VERSION,
             phasesRun,
+            scoringWeights: { ...weights },
           },
           overallScore: score.score,
           overallGrade: score.grade,
@@ -110,11 +173,11 @@ program
               results,
             },
             ...(simulationLayer ? { simulation: simulationLayer } : {}),
+            ...(llmReviewLayer ? { llmReview: llmReviewLayer } : {}),
           },
           recommendations: buildRecommendations(results),
         };
 
-        // 5. Output
         if (options.format === 'json') {
           const json = formatJsonReport(report);
           if (options.output) {
@@ -127,7 +190,6 @@ program
           console.log(formatCliReport(report));
         }
 
-        // Exit with non-zero if not ready
         if (score.deploymentRecommendation === 'not-ready') {
           process.exitCode = 1;
         }
