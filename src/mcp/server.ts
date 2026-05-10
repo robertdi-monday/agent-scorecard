@@ -243,9 +243,10 @@ server.registerTool(
 // ── Config parsing ───────────────────────────────────────────────────────────
 
 /**
- * Parse agent config from JSON string. Accepts either:
+ * Parse agent config from JSON string. Accepts:
  *   1. A full AgentConfig object (from the CLI/app fixtures)
  *   2. A get_agent response (public API shape with user_prompt, profile, etc.)
+ *   3. The MCP tool wrapper: { message: "...", agent: { ... } }
  */
 function parseAgentConfig(jsonStr: string): AgentConfig {
   let parsed: Record<string, unknown>;
@@ -255,8 +256,16 @@ function parseAgentConfig(jsonStr: string): AgentConfig {
     throw new Error('Invalid JSON: could not parse agentConfigJson.');
   }
 
-  // If it looks like a get_agent response (has user_prompt at top level),
-  // map it to AgentConfig shape
+  // Handle MCP tool wrapper: { message, agent: { ... } }
+  if ('agent' in parsed && typeof parsed.agent === 'object' && parsed.agent) {
+    const agent = parsed.agent as Record<string, unknown>;
+    if ('user_prompt' in agent && 'profile' in agent) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return mapPublicAgentToConfig(agent as any);
+    }
+  }
+
+  // Direct get_agent shape (user_prompt + profile at top level)
   if ('user_prompt' in parsed && 'profile' in parsed) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return mapPublicAgentToConfig(parsed as any);

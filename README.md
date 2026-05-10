@@ -33,27 +33,32 @@ An MCP server exposes the scorecard audit pipeline as tools that Agent Builder a
 
 | Tool | Description |
 |------|-------------|
-| `audit_agent` | Full audit pipeline: fetch config, run instruction-level checks, optional simulation and LLM review, return `ScorecardReport` |
-| `get_agent_config` | Fetch and return an agent's mapped configuration for inspection |
+| `audit_agent` | Full audit pipeline: accepts agent config JSON, runs instruction-level checks, optional simulation and LLM review, returns `ScorecardReport` |
+
+The `audit_agent` tool accepts agent configuration as a JSON string. This can be:
+- The raw output of `get_agent` from the monday MCP server (wrapped or unwrapped)
+- A full `AgentConfig` object from the CLI fixtures
 
 **Environment variables:**
 
 | Variable | Required | Purpose |
 |----------|----------|---------|
-| `MONDAY_API_TOKEN` | Yes | monday.com personal API token |
+| `MONDAY_API_TOKEN` | For API client | monday.com personal API token (used by the `createMcpApiClient` helper) |
 | `ANTHROPIC_API_KEY` | No | Anthropic API key for LLM review checks |
 
 **Running:**
 
 ```bash
 # Development (via tsx)
-MONDAY_API_TOKEN=xxx npm run mcp
+npm run mcp
 
 # After build
-MONDAY_API_TOKEN=xxx node dist/mcp/server.js
+node dist/mcp/server.js
 ```
 
-**Coverage note:** The public monday API (`get_agent`) only returns instruction-level fields (goal, plan, user_prompt). The MCP server automatically filters to the 7 instruction-only rules (IN-001 through IN-004, EF-001, EF-004, SC-001) to avoid false failures on rules that require tools, KB, or permission data. LLM review checks (LR-001 through LR-005) work fully since they evaluate instruction text. When internal API access is available, the server can be extended to run all 28 rules.
+**Monday API client:** The `createMcpApiClient(token)` helper in `src/mcp/monday-api.ts` communicates with the official monday MCP server at `mcp.monday.com/mcp` (Streamable HTTP transport). This is the same surface Agent Builder uses internally. It provides `getAgent(id)` and `listAgents()`.
+
+**Coverage note:** The monday MCP `get_agent` tool only returns instruction-level fields (goal, plan, user_prompt, kind, state, profile). The audit pipeline automatically filters to the 7 instruction-only rules (IN-001 through IN-004, EF-001, EF-004, SC-001) to avoid false failures on rules that require tools, KB, or permission data. LLM review checks (LR-001 through LR-005) work fully since they evaluate instruction text. When internal API access is available, the server can be extended to run all 28 rules.
 
 ## CLI
 

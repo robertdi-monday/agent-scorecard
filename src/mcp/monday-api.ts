@@ -1,16 +1,18 @@
 /**
  * monday.com API client for fetching agent configurations.
  *
- * Two modes:
- *   1. Public GraphQL API (default) — uses MONDAY_API_TOKEN bearer auth.
- *      Only returns goal, plan, user_prompt, kind, state, profile.
- *   2. Internal REST (future) — uses cookie/CSRF auth against the internal
- *      agent-management endpoint. Returns full config including tools, KB, etc.
+ * Uses the official monday MCP server (mcp.monday.com/mcp) which exposes
+ * get_agent as an MCP tool. This is the same surface Agent Builder uses
+ * internally. Authentication is via personal API token as Bearer.
+ *
+ * Returns: id, kind, state, profile, goal, plan, user_prompt, version_id,
+ *          created_at, updated_at.
+ * Does NOT return: tools, KB files, permissions, triggers, skills.
  */
 
-const MONDAY_API_URL = 'https://api.monday.com/v2';
+const MONDAY_MCP_URL = 'https://mcp.monday.com/mcp';
 
-/** Shape returned by the public monday GraphQL API for agents. */
+/** Shape returned by the monday MCP get_agent tool. */
 export interface PublicAgentResponse {
   id: string;
   kind: string;
@@ -31,80 +33,135 @@ export interface PublicAgentResponse {
 }
 
 export interface MondayApiClient {
-  getAgent(agentId: string): Promise<PublicAgentResponse>;
+  getAgent(agentId?: string): Promise<PublicAgentResponse>;
+  listAgents(): Promise<PublicAgentResponse[]>;
 }
 
 /**
- * Create a monday API client using the public GraphQL endpoint.
- * Requires a personal API token (bearer auth).
+ * Create a monday API client that communicates via the monday MCP server.
+ * Requires a personal API token (used as Bearer auth).
  */
-export function createPublicApiClient(token: string): MondayApiClient {
+export function createMcpApiClient(token: string): MondayApiClient {
+  const headers = {
+    'Content-Type': 'application/json',
+    Accept: 'application/json, text/event-stream',
+    Authorization: `Bearer ${token}`,
+  };
+
+  async function mcpCall(
+    method: string,
+    params: Record<string, unknown>,
+    id: number,
+    sessionId?: string,
+  ): Promise<{ data: unknown; sessionId: string }> {
+    const reqHeaders: Record<string, string> = { ...headers };
+    if (sessionId) reqHeaders['Mcp-Session-Id'] = sessionId;
+
+    const res = await fetch(MONDAY_MCP_URL, {
+      method: 'POST',
+      headers: reqHeaders,
+      body: JSON.stringify({ jsonrpc: '2.0', id, method, params }),
+    });
+
+    if (!res.ok) {
+      throw new Error(
+        `monday MCP request failed: ${res.status} ${res.statusText}`,
+      );
+    }
+
+    const sid = res.headers.get('mcp-session-id') || sessionId || '';
+    const text = await res.text();
+    const dataLine = text.split('\n').find((l) => l.startsWith('data: '));
+    if (!dataLine) {
+      throw new Error(`Unexpected MCP response format: ${text.substring(0, 200)}`);
+    }
+    const parsed = JSON.parse(dataLine.replace('data: ', ''));
+    if (parsed.error) {
+      throw new Error(
+        `MCP error: ${parsed.error.message || JSON.stringify(parsed.error)}`,
+      );
+    }
+    return { data: parsed.result, sessionId: sid };
+  }
+
+  async function initSession(): Promise<string> {
+    const { sessionId } = await mcpCall(
+      'initialize',
+      {
+        protocolVersion: '2024-11-05',
+        capabilities: {},
+        clientInfo: { name: 'agent-scorecard', version: '1.0.0' },
+      },
+      1,
+    );
+
+    // Send initialized notification (fire-and-forget)
+    const reqHeaders: Record<string, string> = { ...headers };
+    if (sessionId) reqHeaders['Mcp-Session-Id'] = sessionId;
+    await fetch(MONDAY_MCP_URL, {
+      method: 'POST',
+      headers: reqHeaders,
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'notifications/initialized',
+      }),
+    });
+
+    return sessionId;
+  }
+
+  async function callTool(
+    toolName: string,
+    args: Record<string, unknown>,
+  ): Promise<string> {
+    const sessionId = await initSession();
+    const { data } = await mcpCall(
+      'tools/call',
+      { name: toolName, arguments: args },
+      2,
+      sessionId,
+    );
+
+    const result = data as { content?: Array<{ type: string; text: string }> };
+    const textContent = result.content?.find((c) => c.type === 'text');
+    if (!textContent) {
+      throw new Error('MCP tool returned no text content');
+    }
+    return textContent.text;
+  }
+
   return {
-    async getAgent(agentId: string): Promise<PublicAgentResponse> {
-      const query = `
-        query GetAgent($agentId: ID!) {
-          get_agent(id: $agentId) {
-            id
-            kind
-            state
-            version_id
-            created_at
-            updated_at
-            profile {
-              name
-              role
-              role_description
-              avatar_url
-              background_color
-            }
-            goal
-            plan
-            user_prompt
-          }
-        }
-      `;
+    async getAgent(agentId?: string): Promise<PublicAgentResponse> {
+      const args: Record<string, unknown> = {};
+      if (agentId) args.id = agentId;
 
-      const res = await fetch(MONDAY_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: token,
-        },
-        body: JSON.stringify({ query, variables: { agentId } }),
-      });
-
-      if (!res.ok) {
-        throw new Error(
-          `monday API request failed: ${res.status} ${res.statusText}`,
-        );
-      }
-
-      const body = (await res.json()) as {
-        data?: { get_agent?: PublicAgentResponse };
-        errors?: Array<{ message: string }>;
+      const text = await callTool('get_agent', args);
+      const parsed = JSON.parse(text) as {
+        agent?: PublicAgentResponse;
+        agents?: PublicAgentResponse[];
+        message?: string;
       };
 
-      if (body.errors?.length) {
-        throw new Error(
-          `monday API errors: ${body.errors.map((e) => e.message).join('; ')}`,
-        );
-      }
+      if (parsed.agent) return parsed.agent;
+      if (parsed.agents?.length) return parsed.agents[0];
+      throw new Error(
+        `Agent ${agentId || '(list)'} not found or not accessible.`,
+      );
+    },
 
-      const agent = body.data?.get_agent;
-      if (!agent) {
-        throw new Error(
-          `Agent ${agentId} not found or not accessible with the provided token.`,
-        );
-      }
+    async listAgents(): Promise<PublicAgentResponse[]> {
+      const text = await callTool('get_agent', {});
+      const parsed = JSON.parse(text) as {
+        agents?: PublicAgentResponse[];
+        agent?: PublicAgentResponse;
+      };
 
-      return agent;
+      if (parsed.agents) return parsed.agents;
+      if (parsed.agent) return [parsed.agent];
+      return [];
     },
   };
 }
 
-// ── Internal REST client (future) ────────────────────────────────────────────
-//
-// When internal API access is available, implement createInternalApiClient()
-// that calls GET /monday-agents/agent-management/agents-by-user with
-// cookie/CSRF auth and returns the full InternalAgentResponse shape.
-// Use mapApiResponseToConfig() from ../mapper/api-to-config.ts for mapping.
+// Legacy alias for backward compatibility
+export const createPublicApiClient = createMcpApiClient;

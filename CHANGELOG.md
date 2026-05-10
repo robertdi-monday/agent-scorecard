@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.2.1 — 2026-05-10
+
+### Fixed
+
+- **monday API client** — `get_agent` is an MCP tool on `mcp.monday.com/mcp`, not a public GraphQL query. Rewrote `src/mcp/monday-api.ts` to use Streamable HTTP transport against the monday MCP server instead of the GraphQL API.
+  - `createMcpApiClient(token)` replaces `createPublicApiClient(token)`
+  - Added `listAgents()` method to enumerate all user agents
+  - Auth via personal API token as Bearer (same token, correct transport)
+- `parseAgentConfig` in `server.ts` now handles the MCP wrapper format (`{ message, agent: {...} }`)
+
+### Verified
+
+- End-to-end pipeline tested against all 3 live agents (40014, 40033, 35543)
+- Agent 40014 "Agent Scorecard": D (46.7/100) — missing guardrails + injection defense
+- Agent 40033 "MCP chain test": F (33.3/100) — also missing error handling + scope boundaries
+- Agent 35543 "test": F (33.3/100) — same pattern
+
 ## 1.2.0 — 2026-05-10
 
 ### Added
@@ -13,9 +30,8 @@
 - `docs/AGENT_BUILDER_SETUP.md` — step-by-step setup guide with copy-paste configuration blocks
 - Agent Builder section in README
 - **MCP Server** — exposes the audit pipeline as MCP tools over stdio
-  - `audit_agent` tool: full pipeline (fetch config, deterministic checks, optional LLM review, scoring)
-  - `get_agent_config` tool: fetch and inspect an agent's mapped configuration
-  - Automatic rule filtering to instruction-only checks when using the public API
+  - `audit_agent` tool: accepts agent config JSON, runs deterministic checks, optional LLM review, scoring
+  - Automatic rule filtering to instruction-only checks when config lacks tools/KB/permissions
   - Uses `@modelcontextprotocol/sdk` v1.x with stdio transport
   - `npm run mcp` script and `agent-scorecard-mcp` bin entry
 
