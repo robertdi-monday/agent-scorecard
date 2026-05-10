@@ -143,9 +143,7 @@ function formatSimulationSection(
     ]);
   }
 
-  return (
-    chalk.bold.underline('Simulation Probes') + '\n\n' + table.toString()
-  );
+  return chalk.bold.underline('Simulation Probes') + '\n\n' + table.toString();
 }
 
 function formatVerdict(verdict: SimulationResultEntry['verdict']): string {

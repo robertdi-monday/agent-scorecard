@@ -21,6 +21,7 @@ export {
   findKeywords,
   jaccardSimilarity,
 } from './helpers/text-analysis.js';
+export { mapApiResponseToConfig } from './mapper/api-to-config.js';
 
 export type {
   AgentConfig,
@@ -44,3 +45,4 @@ export type {
 } from './simulation/types.js';
 
 export type { MultiLayerInput } from './scoring/aggregator.js';
+export type { InternalAgentResponse } from './mapper/api-types.js';

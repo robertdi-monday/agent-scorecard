@@ -281,9 +281,7 @@ describe('loadConfig', () => {
     expect(() => loadConfig({} as Record<string, unknown>)).toThrow(
       ConfigLoadError,
     );
-    expect(() => loadConfig({} as Record<string, unknown>)).toThrow(
-      /<object>/,
-    );
+    expect(() => loadConfig({} as Record<string, unknown>)).toThrow(/<object>/);
   });
 
   it('throws when object is missing required fields', () => {

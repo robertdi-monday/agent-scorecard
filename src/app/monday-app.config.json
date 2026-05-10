@@ -1,0 +1,13 @@
+{
+  "name": "Agent Scorecard",
+  "description": "Configuration audit and adversarial simulation scorecard for monday.com Agent Builder agents",
+  "features": [
+    {
+      "type": "BoardView",
+      "name": "Agent Scorecard",
+      "path": "index.html",
+      "description": "View the agent scorecard for this board's connected agent"
+    }
+  ],
+  "permissions": ["read:boards", "read:items"]
+}
