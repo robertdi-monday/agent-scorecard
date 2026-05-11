@@ -4,7 +4,7 @@
 **Purpose:** What it is, why it matters, what exists today, roadmap, truthful metrics, architecture, and user flows.  
 **How to use this file:** Copy into a [monday.com Doc](https://monday.com/) (or split into workdoc sections). Headings and tables paste cleanly.
 
-**Cursor — Agent Evaluator canvas:** The **visual, read-in-one-pass** version of this brief (value proposition, where you can use it in monday, Agent Builder + Custom MCP flow, limitations / next steps) lives in Cursor as a **Canvas**: open **`agent-scorecard-leadership.canvas.tsx`** from the **Canvases** list for this workspace, or from the managed canvases folder on disk (typically `~/.cursor/projects/<workspace-folder>/canvases/agent-scorecard-leadership.canvas.tsx` — exact path depends on your machine). Use **this markdown** when you need monday Doc paste, versioned diffs, or the PNG/Mermaid sources under [`docs/leadership-brief-diagrams/`](./leadership-brief-diagrams/).
+**Cursor — Agent Evaluator canvas:** The **visual, read-in-one-pass** version of this brief (value proposition, executive risk lens and decisions to align, where you can use it in monday, Agent Builder + Custom MCP flow, limitations / next steps) lives in Cursor as a **Canvas**: open **`agent-scorecard-leadership.canvas.tsx`** from the **Canvases** list for this workspace, or from the managed canvases folder on disk (typically `~/.cursor/projects/<workspace-folder>/canvases/agent-scorecard-leadership.canvas.tsx` — exact path depends on your machine). Use **this markdown** when you need monday Doc paste, versioned diffs, or the PNG/Mermaid sources under [`docs/leadership-brief-diagrams/`](./leadership-brief-diagrams/).
 
 **Standards deep dive:** For procurement, security, and regulatory framing, see [`STANDARDS_AND_VALUE.md`](./STANDARDS_AND_VALUE.md) (OWASP ASI Dec 2025, NIST AI RMF, multi-layer evaluation, scoring model). Roadmap tables, pilot KPI candidates, and user-flow diagrams **below** stay here for export; the Canvas summarizes the same threads for Cursor readers.
 
@@ -46,6 +46,28 @@ Summarized from [`STANDARDS_AND_VALUE.md`](../STANDARDS_AND_VALUE.md):
 4. **Block-on-critical:** A single failed **critical** safety check forces **F** and **not-ready** — the score cannot hide a broken brake rail (CVSS / SSL Labs–style severity model; see standards doc).
 
 5. **Vertical packs without re-architecture:** Example: **SLED grant** rules ship as a pack; other industries can add packs the same way.
+
+### 2.1 Business risk lens (executives)
+
+Three ways “no quality gate” shows up outside engineering:
+
+| Lens | What is at stake |
+|------|-------------------|
+| **Revenue / deals** | Enterprise and regulated buyers increasingly expect **demonstrable** AI governance. A story that stops at “the builder is responsible” is a weak answer in procurement — it can slow renewals, block vertical expansion, and complicate security questionnaires. |
+| **Liability / compliance** | Misconfigured agents can leak workspace data, over-automate, or give wrong authoritative answers. In regulated contexts (public funds, health-adjacent coordination, financial reporting), that surfaces as **contract**, **eligibility**, or **audit** exposure — not only “bad UX.” |
+| **Platform trust** | Agent Builder’s value depends on customers trusting **fleet-scale** deployment. A high-profile failure (exfiltration, bad compliance guidance, runaway automation) can erode confidence **across** accounts, not only the affected workspace. |
+
+### 2.2 Decisions to align (tradeoffs, not prescriptions)
+
+These are **choices to make explicit** with platform, security, and field — not fixed answers from this repository:
+
+| Area | What to decide | Tradeoffs / notes |
+|------|----------------|-------------------|
+| **Full config in Agent Builder** | Ship a **hosted or MCP bridge** that resolves the full agent record vs **wait** on a richer public `get_agent` (or other documented API) | Chat-side depth vs dependency on **supported** credentials, hosting, and review cycles |
+| **Channel priority** | Weight **in-product Builder** vs **CI / export** vs **both** first | Builders feel friction first; governance often lives in pipelines — **same audit core** everywhere, so sequencing is mostly product and GTM |
+| **Continuous evaluation** | **Scheduled** checks (e.g. poll + `version_id` / hash) vs lighter rollout until **lifecycle signals** exist | Coverage vs engineering noise; there is **no** official agent edit webhook called out in roadmap today |
+
+Operating dependencies (MCP 500s, LLM variance, platform webhooks, access to management-class APIs) stay in **§3.4C**.
 
 ---
 
@@ -122,6 +144,7 @@ We do **not** yet have production telemetry in this repo for the following; trea
 
 | Item | Impact on “expected performance” |
 |------|-------------------------------------|
+| **Public `get_agent` payload** | Instruction-level fields only for the Scorecard Agent path; tools, KB, permissions, and triggers require **management-class** or other **productized** access for full deterministic depth in chat — see **§2.2** and roadmap *v1.3*. |
 | **monday agent MCP health** | When `get_agent` / `create_agent` return **500**, provisioning and in-chat fetch paths fail **regardless of scorecard logic** — other MCP tools can still work (isolate to agent subsystem). |
 | **LLM non-determinism** | Semantic scores can vary slightly run-to-run; multi-judge + `lowConfidence` reduce false confidence — still a **review** surface for borderline cases. |
 | **Platform gaps** | No official **agent lifecycle webhook** for auto-audit on every edit (see `ROADMAP.md`); org-wide and continuous themes depend on monday or **your** orchestration. |

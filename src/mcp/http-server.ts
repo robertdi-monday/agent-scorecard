@@ -85,15 +85,18 @@ function createMcpServer(): McpServer {
         includeLlmReview: z
           .boolean()
           .optional()
+          .default(true)
           .describe(
             'Run LLM-powered semantic review checks (Q-002, S-003, Q-003, Q-004). ' +
-              'Requires ANTHROPIC_API_KEY env var or anthropicApiKey parameter.',
+              'Defaults to true. Requires ANTHROPIC_API_KEY env var or anthropicApiKey parameter; ' +
+              'falls back to deterministic-only scoring if no key is available.',
           ),
         includeSimulation: z
           .boolean()
           .optional()
+          .default(true)
           .describe(
-            'Run adversarial simulation probes. ' +
+            'Run adversarial simulation probes. Defaults to true. ' +
               'Most useful when the config includes tool and permission data.',
           ),
         anthropicApiKey: z
@@ -145,44 +148,38 @@ function createMcpServer(): McpServer {
         if (includeLlmReview) {
           const apiKey = anthropicApiKey || process.env.ANTHROPIC_API_KEY || '';
           if (!apiKey) {
-            return {
-              content: [
-                {
-                  type: 'text' as const,
-                  text: 'LLM review requested but no API key provided. Set ANTHROPIC_API_KEY env var or pass anthropicApiKey parameter.',
-                },
-              ],
-              isError: true,
+            console.log(
+              'LLM review enabled but no API key available — falling back to deterministic-only scoring.',
+            );
+          } else {
+            const { createAnthropicClient } =
+              await import('../llm-review/llm-client.js');
+            const { runLlmReview } = await import('../llm-review/reviewer.js');
+
+            const llmClient = createAnthropicClient(apiKey);
+            const failedRules = results.filter((r: AuditResult) => !r.passed);
+            const simulationGaps =
+              multiLayerInput.simulationSummary?.results
+                .filter((r) => r.verdict !== 'resilient')
+                .flatMap((r) => r.gaps) ?? [];
+
+            const llmSummary = await runLlmReview(
+              config,
+              llmClient,
+              failedRules,
+              simulationGaps,
+            );
+            multiLayerInput.llmReviewSummary = llmSummary;
+            llmReviewLayer = {
+              overallScore: llmSummary.overallScore,
+              checkCount: llmSummary.checkCount,
+              passed: llmSummary.passed,
+              failed: llmSummary.failed,
+              results: llmSummary.results,
+              tailoredFixes: llmSummary.tailoredFixes,
             };
+            phasesRun.push('llm-review');
           }
-
-          const { createAnthropicClient } =
-            await import('../llm-review/llm-client.js');
-          const { runLlmReview } = await import('../llm-review/reviewer.js');
-
-          const llmClient = createAnthropicClient(apiKey);
-          const failedRules = results.filter((r: AuditResult) => !r.passed);
-          const simulationGaps =
-            multiLayerInput.simulationSummary?.results
-              .filter((r) => r.verdict !== 'resilient')
-              .flatMap((r) => r.gaps) ?? [];
-
-          const llmSummary = await runLlmReview(
-            config,
-            llmClient,
-            failedRules,
-            simulationGaps,
-          );
-          multiLayerInput.llmReviewSummary = llmSummary;
-          llmReviewLayer = {
-            overallScore: llmSummary.overallScore,
-            checkCount: llmSummary.checkCount,
-            passed: llmSummary.passed,
-            failed: llmSummary.failed,
-            results: llmSummary.results,
-            tailoredFixes: llmSummary.tailoredFixes,
-          };
-          phasesRun.push('llm-review');
         }
 
         const score =
@@ -322,8 +319,10 @@ function createMcpServer(): McpServer {
     {
       title: 'List Agents',
       description:
-        'List all monday.com agents accessible to the current user. ' +
-        'Returns an array of agent configurations with id, name, kind, and state.',
+        'List all monday.com agents accessible to the server\'s API token holder. ' +
+        'Use this to find an agent by name when the user does not know the numeric ID. ' +
+        'Returns an array of agent summaries with id, name, kind, and state (up to 100). ' +
+        'Agents owned by other users may not appear but can still be fetched by ID via get_agent.',
       inputSchema: {},
     },
     async () => {
@@ -650,6 +649,10 @@ const httpServer = createServer(async (req, res) => {
   const url = new URL(
     req.url || '/',
     `http://${req.headers.host || 'localhost'}`,
+  );
+
+  console.log(
+    `[${new Date().toISOString()}] ${req.method} ${url.pathname} auth=${req.headers.authorization ? 'present' : 'missing'} session=${req.headers['mcp-session-id'] || 'none'}`,
   );
 
   // Health check

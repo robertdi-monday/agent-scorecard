@@ -51,8 +51,8 @@ Audit a target AI agent's configuration for instruction quality, security vulner
 Paste this into the **Plan** field:
 
 ```
-1. Ask the user for the target agent ID to audit (or list available agents via list_agents).
-2. Call get_agent to retrieve the target agent's configuration (goal + plan + user_prompt + kind + state).
+1. Identify the target agent. The user may provide an agent ID (e.g. "audit agent 40033"), an agent name (e.g. "audit the Sales Bot"), or ask to see available agents. If given a name, call list_agents and match by profile.name (case-insensitive); confirm with the user if ambiguous. If no target specified, call list_agents and present a numbered list for the user to pick from. If a name isn't found, explain that list_agents only shows agents accessible to the server's token holder and suggest the user ask for the agent ID directly.
+2. Call get_agent with the resolved agent ID to retrieve the target agent's configuration (goal + plan + user_prompt + kind + state).
 3. Concatenate goal + plan + user_prompt as "instruction text" for keyword/regex checks.
 4. Infer autonomy tier (GOV-001 modifier) from kind + capability surface in the plan; this lifts the `ready` score threshold for higher-autonomy agents.
 5. Run **15** pillar-tagged deterministic (v1) rules across 5 pillars (Completeness, Safety, Quality, Observability, Reliability) — see system prompt for the full registry. (The other **21** rules in the 36-rule `sled-grant` catalog need tools/KB/permissions and do not apply on `get_agent`-only data.)
@@ -83,11 +83,20 @@ Toggle **on** each of these tools in the Agent Builder tools panel:
 
 No other tools are needed.
 
+**`get_agent` in Builder:** Some accounts do not expose monday-native `get_agent`. In that case the **custom Scorecard MCP** (Steps 5–6) registers its own `get_agent` / `list_agents` tools; those only work if the MCP server has **`MONDAY_API_TOKEN`** set. Alternatively, use the custom MCP’s **`monday_tool`** proxy for platform tools if you prefer a single MCP connection.
+
 ---
 
 ## Step 5: Deploy the Custom MCP Server
 
-The Scorecard MCP server provides the `audit_agent` tool over Streamable HTTP transport.
+The Scorecard MCP server exposes Streamable HTTP tools including:
+
+- **`audit_agent`** — deterministic (and optional LLM/simulation) scoring from JSON config
+- **`get_agent`** / **`list_agents`** — fetch agent instruction fields via monday’s hosted MCP (`https://mcp.monday.com/mcp`) using the **server’s** token
+
+`get_agent` and `list_agents` **require `MONDAY_API_TOKEN` on the MCP server process** (same personal token you use for `provision-agent.ts`). Without it, those tools return an error; `audit_agent` alone still works if the model passes pasted JSON.
+
+**Cross-user agent visibility:** `list_agents` returns only agents accessible to the `MONDAY_API_TOKEN` holder (up to 100). For team-wide auditing, use an **admin or account-level user's token** — this maximizes the number of agents visible via `list_agents` and `get_agent`. Individual agents can still be fetched by ID regardless of ownership, as long as the token has account-level read access.
 
 ### Option A: Local + Cloudflare Tunnel (Development)
 
@@ -96,8 +105,8 @@ The Scorecard MCP server provides the `audit_agent` tool over Streamable HTTP tr
 MCP_API_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
 echo "MCP_API_KEY: $MCP_API_KEY"
 
-# Start the server
-MCP_API_KEY=$MCP_API_KEY PORT=3001 npm run mcp:http
+# Start the server (MONDAY_API_TOKEN is required for get_agent / list_agents on this server)
+MONDAY_API_TOKEN=xxx MCP_API_KEY=$MCP_API_KEY PORT=3001 npm run mcp:http
 
 # In another terminal, expose via Cloudflare Tunnel
 cloudflared tunnel --url http://localhost:3001
@@ -114,11 +123,12 @@ docker build -t agent-scorecard-mcp .
 # Run
 docker run -p 3001:3001 \
   -e MCP_API_KEY=your-secret-key \
+  -e MONDAY_API_TOKEN=your-monday-personal-token \
   -e PORT=3001 \
   agent-scorecard-mcp
 ```
 
-Deploy the Docker image to Railway, Fly.io, Render, or any container host. Set `MCP_API_KEY` and `PORT` as environment variables.
+Deploy the Docker image to Railway, Fly.io, Render, or any container host. Set **`MCP_API_KEY`**, **`MONDAY_API_TOKEN`** (for `get_agent` / `list_agents` / `monday_tool`), and **`PORT`**.
 
 ### Verify Deployment
 
@@ -212,6 +222,8 @@ The agent's instructions tell it to create the board automatically on first run.
 
 This agent can only evaluate **instruction-level** configuration. The `get_agent` tool returns goal, plan, user_prompt, kind, and state but does **not** return tools, knowledge base files, permissions, triggers, or skills.
 
+**Agent discovery:** Agent IDs are not visible in monday.com's UI. The Scorecard agent supports lookup by name via `list_agents`, but this only returns agents accessible to the `MONDAY_API_TOKEN` holder. For full account visibility, use an admin token (see Step 5). Users can always audit any agent by ID if they obtain it from the agent owner or Agent Builder UI.
+
 **Excluded checks** (**17** universal deterministic rules without `pillar` + **LR-004** + all simulation probes; the **4** SLED vertical rules also need full config and are omitted on the typical `get_agent` → `audit_agent` path):
 - Tool-dependent: TL-001, TL-002, TR-001, TR-002, EF-002, EF-003, SC-002, SC-003, SC-004, SC-005, SC-006
 - KB-dependent: KB-001, KB-002, KB-003, EF-005, LR-004
@@ -234,19 +246,90 @@ See [AGENT_BUILDER_V1_SPEC.md Section 1](./AGENT_BUILDER_V1_SPEC.md) for expansi
 
 ## Troubleshooting
 
+### QA Runbook: "Agent says it has no tool to retrieve agent settings"
+
+This is the most common failure mode. The agent analyzes **itself** instead of calling `get_agent` on the target, producing a self-review instead of an audit. Root cause: the custom MCP connection is broken, so the agent has no tools.
+
+**Triage checklist (in order):**
+
+1. **Is the MCP server running?**
+   ```bash
+   curl http://localhost:3001/health
+   # expect: {"status":"ok","version":"..."}
+   ```
+
+2. **Is the tunnel alive?** (if using Cloudflare quick tunnel)
+   ```bash
+   curl https://YOUR-TUNNEL-URL.trycloudflare.com/health
+   ```
+   Quick tunnel URLs expire after hours/days with no warning. If dead, restart:
+   ```bash
+   cloudflared tunnel --url http://localhost:3001
+   ```
+   This gives a **new URL** — you must update Agent Builder (see step 4).
+
+3. **Does the MCP handshake work?**
+   ```bash
+   # Initialize
+   curl -s -D /tmp/mcp_h -X POST https://YOUR-URL/mcp \
+     -H "Content-Type: application/json" \
+     -H "Accept: application/json, text/event-stream" \
+     -H "Authorization: Bearer YOUR_MCP_API_KEY" \
+     -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}'
+
+   # Get session ID from response headers, then list tools
+   SESSION=$(grep -i "^mcp-session-id" /tmp/mcp_h | awk '{print $2}' | tr -d '\r\n')
+   curl -s -X POST https://YOUR-URL/mcp \
+     -H "Content-Type: application/json" \
+     -H "Accept: application/json, text/event-stream" \
+     -H "Authorization: Bearer YOUR_MCP_API_KEY" \
+     -H "Mcp-Session-Id: $SESSION" \
+     -d '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'
+   # expect: audit_agent, get_agent, list_agents, monday_tool
+   ```
+
+4. **CRITICAL: Remove and re-add the custom MCP in Agent Builder.**
+   Agent Builder caches the custom MCP connection. Simply editing the URL in-place does **not** reliably update it. You must:
+   - Go to Agent Builder → Scorecard Agent → Tools → Custom MCP
+   - **Delete** the custom MCP entry entirely and save
+   - **Re-add** it with the new URL and auth, save
+   - Verify all 4 tools (`audit_agent`, `get_agent`, `list_agents`, `monday_tool`) appear and are toggled on
+   - **Open a fresh chat** — existing chat sessions may still use the old config
+
+5. **Check the server logs for incoming requests.**
+   The HTTP server logs every request with timestamp, method, path, auth status, and session ID. After triggering an audit in Agent Builder, check the terminal running the server. If zero requests appear, Agent Builder is not reaching the server (go back to step 4).
+
+6. **Verify the agent ID is valid.**
+   Agent IDs in monday.com are typically short numeric strings (e.g. `40055`, `35543`). To list all accessible agents:
+   ```bash
+   # Use the custom MCP's list_agents, or call get_agent with no ID via monday MCP
+   ```
+   Common mistake: colleagues may report board IDs, item IDs, or other numeric identifiers as "agent IDs." If `get_agent` returns "agent not found," the ID is likely wrong.
+
+**Known behaviors (2026-05-11):**
+- Cloudflare quick tunnel URLs have no uptime guarantee and expire silently. For production, deploy to a container host with a stable URL.
+- Agent Builder does not hot-reload custom MCP URLs. Full remove/re-add is required after any URL change.
+- Monday's agent-management API (`get_agent`, `create_agent`) can return 500s intermittently for some accounts. This is a platform issue, not a Scorecard bug.
+- The `get_agent` platform tool is not available on all accounts. The custom MCP's `get_agent` (backed by `MONDAY_API_TOKEN`) is the workaround.
+
+---
+
 **Agent can't find the results board**
 The agent searches by name "Agent Scorecard Results". If you renamed the board or it was deleted, create a new one following Step 8.
 
 **Status/Severity labels show as numbers instead of text**
 The agent uses `create_labels_if_missing: true` when writing items. If labels still don't appear, manually configure the Status and Severity column labels per Step 8.
 
-**Agent says "get_agent failed"**
-Verify the target agent ID is correct and belongs to the same account. The `get_agent` tool only works for agents the current user has access to.
+**Agent says "get_agent failed" or "MONDAY_API_TOKEN not configured"**
+The custom MCP’s `get_agent` runs **on your server** and calls monday’s hosted MCP with **`MONDAY_API_TOKEN`**. Set that env var wherever the HTTP MCP runs (local shell, Docker `-e`, Railway/Render env). Then restart the server and retry.
+
+If the token is set but calls still fail, verify the target agent ID and account access; monday’s agent-management layer can intermittently return errors (see `docs/HANDOFF_PHASE_4.md`).
 
 **Custom MCP connection fails**
 - Verify the MCP URL is accessible: `curl https://your-url.com/health` should return `{"status":"ok"}`
 - Check the API key matches: the `Authorization: Bearer xxx` header must use the same `MCP_API_KEY` the server was started with
 - Cloudflare Tunnel URLs change on restart — update the custom MCP URL in Agent Builder if using a quick tunnel
+- **If you changed the URL, you must remove and re-add the custom MCP in Agent Builder** — see the QA Runbook above
 
 **LLM checks seem shallow**
 Agent Builder agents use monday's LLM infrastructure, not a direct Anthropic API call. The quality of semantic checks depends on the underlying model. For deeper analysis, use the CLI or embedded app with an Anthropic API key.

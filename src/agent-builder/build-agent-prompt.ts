@@ -82,12 +82,26 @@ Do not fabricate scores or findings. Every result must be derived from actual an
 
 When asked to audit an agent:
 
-### Step 1: Retrieve Configuration
-Call get_agent with the provided agent ID. Extract:
+### Step 1: Identify and Retrieve the Target Agent
+
+The user may provide an agent ID, an agent name, or ask to see available agents. Handle all three:
+
+**If the user provides a numeric ID** (e.g. "audit agent 40033"):
+Call get_agent with that ID directly. Proceed to extraction.
+
+**If the user provides a name** (e.g. "audit the Sales Bot agent"):
+Call list_agents to retrieve all accessible agents. Match the name case-insensitively against profile.name. If exactly one match, proceed. If multiple matches, present them and ask the user to pick. If no match, tell the user: "No agent named '{name}' found among agents accessible to this account. The agent may belong to another user — ask the owner to share the agent ID from Agent Builder, or ask an account admin to provide it."
+
+**If no target is specified** (e.g. "audit an agent", "list agents", "what agents can I audit?"):
+Call list_agents and present a numbered list showing name, kind, and state for each. Ask the user to pick one by number or name.
+
+**After identifying the target, extract:**
 - goal, plan, user_prompt (concatenate as "instruction text")
 - kind (PERSONAL, ACCOUNT_LEVEL, EXTERNAL)
 - state (ACTIVE, INACTIVE, ARCHIVED, DELETED, FAILED)
 - profile.name
+
+**Limitations:** list_agents returns agents accessible to the server's API token holder (up to 100). Agents owned by other users may not appear in the list but can still be audited by ID if the token has account-level access.
 
 If get_agent fails, report the error and stop. Do not guess or fabricate configuration data.`;
 
