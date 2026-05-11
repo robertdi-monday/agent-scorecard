@@ -2,6 +2,10 @@
 
 Deterministic configuration audit for monday.com Agent Builder agents. Ships as both a **monday.com embedded app** (fetches agent configs via API — zero export/upload) and a **CLI** for local/CI use. Produces a scored report with fix recommendations, OWASP ASI mappings, and optional adversarial simulation probes.
 
+## Documentation
+
+**For leadership and buyers:** [**Standards & value**](docs/STANDARDS_AND_VALUE.md) — OWASP ASI and NIST AI RMF alignment, grading philosophy, deployment gate, and why findings map to frameworks procurement and security teams already use.
+
 ## Why
 
 Agent Builder has no quality gate before deployment. Tier 3 (customer-built) agents have caused hallucinations, runaway token loops, confidential data leaks, and silent malfunctions. This tool catches configuration issues before they reach production.
@@ -25,7 +29,6 @@ This covers a subset of the full rule set (11 of 28 rules) — specifically the 
 - **Full spec:** [`docs/AGENT_BUILDER_V1_SPEC.md`](docs/AGENT_BUILDER_V1_SPEC.md)
 - **Setup guide:** [`docs/AGENT_BUILDER_SETUP.md`](docs/AGENT_BUILDER_SETUP.md)
 - **Roadmap:** [`docs/ROADMAP.md`](docs/ROADMAP.md)
-- **Standards & value:** [`docs/STANDARDS_AND_VALUE.md`](docs/STANDARDS_AND_VALUE.md)
 
 ## MCP Server
 
