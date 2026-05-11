@@ -1,0 +1,14 @@
+sequenceDiagram
+  participant U as Builder
+  participant SA as Scorecard Agent
+  participant G as monday get_agent
+  participant CM as Custom Scorecard MCP
+  participant B as monday board
+
+  U->>SA: Ask to audit agent ID
+  SA->>G: get_agent(id)
+  G-->>SA: goal, plan, user_prompt, kind, state
+  SA->>CM: audit_agent(JSON) (deterministic + optional layers)
+  CM-->>SA: ScorecardReport (subset of rules if instruction-only)
+  SA->>B: Write rows / summary
+  SA-->>U: Short summary + link

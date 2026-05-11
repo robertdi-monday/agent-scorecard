@@ -1,0 +1,21 @@
+sequenceDiagram
+  participant U as Builder
+  participant App as Embedded app
+  participant M as monday Agent API
+  participant S as Scorecard core
+  participant L as LLM optional
+
+  U->>App: Open app, pick agent
+  App->>M: Fetch full AgentConfig
+  M-->>App: JSON config
+  App->>S: Run audit rules
+  opt LLM review enabled
+    App->>L: Semantic checks
+    L-->>App: Scores / findings
+  end
+  S-->>App: ScorecardReport
+  App-->>U: Grade, table, recommendations
+  opt Export
+    U->>App: Export to board
+    App->>M: Create/update items
+  end

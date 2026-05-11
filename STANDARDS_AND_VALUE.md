@@ -110,7 +110,7 @@ Modeled on **[CVSS](https://www.first.org/cvss/)** (the industry-standard vulner
 
 - **Zero-friction workflow** — embedded monday.com app fetches agents directly via the internal API; a builder sees their grade in seconds, no export required. Full configuration access (all **36** deterministic rules with `--vertical sled-grant` + **9** LLM checks). *Example:* open the app, pick an agent, read the grade and fix list without downloading JSON.
 - **CI gate** — for code-defined agents (MCP/SDK), the CLI fails the build at grade D/F. Quality becomes enforced, not requested. Agent Builder agents are gated at audit time via the in-product Scorecard Agent rather than at commit time, since they have no build pipeline. *Example:* a release job runs `agent-scorecard audit` and blocks merge when the recommendation is `not-ready`.
-- **[Scorecard Agent](./AGENT_BUILDER_V1_SPEC.md)** — an Agent Builder agent that audits other agents natively in monday.com. Self-service, no API key. Instruction-only coverage today (**15** pillar-tagged deterministic rules + **8** of **9** LLM phase-1 checks); converges with the CLI once the internal-config MCP proxy or expanded `get_agent` ships. *Example:* in chat, “Audit agent 12345” produces board rows with pass/fail per check.
+- **[Scorecard Agent](docs/AGENT_BUILDER_V1_SPEC.md)** — an Agent Builder agent that audits other agents natively in monday.com. Self-service, no API key. Instruction-only coverage today (**15** pillar-tagged deterministic rules + **8** of **9** LLM phase-1 checks); converges with the CLI once the internal-config MCP proxy or expanded `get_agent` ships. *Example:* in chat, “Audit agent 12345” produces board rows with pass/fail per check.
 - **MCP server** — plugs into any tool that speaks Model Context Protocol, so the same audit runs from Claude, Cursor, or first-party agents. Coverage matches whatever config surface the caller provides. *Example:* Cursor passes `get_agent` JSON into `audit_agent` and pastes the report into a design doc.
 - **Vertical rule packs** — SLED grant pack ships today; same framework supports finance, healthcare, etc. without re-architecting. Keyword-driven pack rules run in all modes; KB-driven rules require full-config access.
 
@@ -147,11 +147,11 @@ Every addition is anchored to a specific standard. v1 was 17 rules across 3 pill
 
 ## Roadmap, pilot KPIs, and user flows (where to read them)
 
-**Canonical tables and diagrams** (roadmap §3.3, outcome KPI candidates §3.4B, user flows §5 with Mermaid + PNGs) stay in **[./LEADERSHIP_BRIEF_MONDAY_DOC.md](./LEADERSHIP_BRIEF_MONDAY_DOC.md)** so monday Docs / Slides / GitHub can link to one file.
+**Canonical tables and diagrams** (roadmap §3.3, outcome KPI candidates §3.4B, user flows §5 with Mermaid + PNGs) stay in **[docs/LEADERSHIP_BRIEF_MONDAY_DOC.md](docs/LEADERSHIP_BRIEF_MONDAY_DOC.md)** so monday Docs / Slides / GitHub can link to one file.
 
 **Cursor:** The same storyline is summarized in the **Agent Evaluator** **Canvas** — open **`agent-scorecard-leadership.canvas.tsx`** from the Canvases list for this workspace (managed under `~/.cursor/projects/.../canvases/` on disk). That canvas is the intended companion to this standards doc for non-export, in-IDE reading.
 
-Engineering detail for roadmap phases also remains in [`./ROADMAP.md`](./ROADMAP.md).
+Engineering detail for roadmap phases also remains in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ---
 

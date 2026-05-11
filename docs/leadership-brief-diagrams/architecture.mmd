@@ -1,0 +1,46 @@
+flowchart TB
+  subgraph Consumers["People & systems"]
+    Builder["Builder / admin"]
+    Engineer["Engineer / CI"]
+    MCPClient["MCP client\n(Cursor, Claude, …)"]
+  end
+
+  subgraph Monday["monday.com platform"]
+    App["Embedded Scorecard app"]
+    ABAgent["Scorecard Agent\n(Agent Builder)"]
+    MonAPI["Agent Management API\n(full config)"]
+    MonGet["get_agent MCP tool\n(instruction subset)"]
+    Board["Results board\n(items & columns)"]
+  end
+
+  subgraph Scorecard["Agent Scorecard (this repo)"]
+    Core["Audit core\n(rules + scoring + pillars)"]
+    LLM["LLM review\n(Haiku when enabled)"]
+    Sim["Simulation probes\n(when enabled)"]
+    MCP["Custom MCP server\n(audit_agent, list_agents)"]
+    CLI["CLI\n(agent-scorecard audit)"]
+  end
+
+  Builder --> App
+  Builder --> ABAgent
+  Engineer --> CLI
+  MCPClient --> MCP
+
+  App --> MonAPI
+  App --> Core
+  CLI --> Core
+  MCP --> Core
+
+  ABAgent --> MonGet
+  ABAgent --> MCP
+  MonGet --> Core
+  MCP --> LLM
+  CLI --> LLM
+  App --> LLM
+
+  CLI --> Sim
+  App --> Sim
+
+  Core --> Board
+  ABAgent --> Board
+  App --> Board

@@ -1,0 +1,4 @@
+flowchart LR
+  A["agent.json\n(fixture or export)"] --> B["CLI audit"]
+  B --> C["ScorecardReport\nstdout or JSON file"]
+  C --> D["Exit code\n0 = ready path\n1 = not-ready / gate"]

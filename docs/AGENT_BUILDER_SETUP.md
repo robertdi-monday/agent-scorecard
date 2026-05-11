@@ -1,6 +1,6 @@
 # Agent Scorecard — Agent Builder Setup Guide
 
-This guide walks through creating and deploying the Scorecard Agent in monday.com's Agent Builder. The agent audits other agents' instruction quality using 24 deterministic checks across 5 pillars and up to 8 LLM-powered semantic-review checks (multi-judge sampling for the safety-critical ones), then writes results to a monday.com board.
+This guide walks through creating and deploying the Scorecard Agent in monday.com's Agent Builder. The agent audits other agents' instruction quality using **15** pillar-tagged deterministic checks across five pillars and up to **8** of **9** LLM phase-1 checks (multi-judge sampling on the safety-critical ones; LR-004 needs KB filenames), then writes results to a monday.com board.
 
 > **Single source of truth.** The agent's `user_prompt` is composed programmatically by [`src/agent-builder/build-agent-prompt.ts`](../src/agent-builder/build-agent-prompt.ts) from each rule's `agentPromptSnippet`. Don't hand-edit the prompt in Agent Builder — re-run `provision-agent.ts` after editing rule snippets to keep the live agent and the codebase byte-identical. A prompt-size regression test (`tests/agent-builder/build-agent-prompt.test.ts`) keeps the prompt under monday's `user_prompt` field cap.
 
@@ -55,7 +55,7 @@ Paste this into the **Plan** field:
 2. Call get_agent to retrieve the target agent's configuration (goal + plan + user_prompt + kind + state).
 3. Concatenate goal + plan + user_prompt as "instruction text" for keyword/regex checks.
 4. Infer autonomy tier (GOV-001 modifier) from kind + capability surface in the plan; this lifts the `ready` score threshold for higher-autonomy agents.
-5. Run 24 deterministic v1 rules across 5 pillars (Completeness, Safety, Quality, Observability, Reliability) — see system prompt for the full registry.
+5. Run **15** pillar-tagged deterministic (v1) rules across 5 pillars (Completeness, Safety, Quality, Observability, Reliability) — see system prompt for the full registry. (The other **21** rules in the 36-rule `sled-grant` catalog need tools/KB/permissions and do not apply on `get_agent`-only data.)
 6. Run up to 8 LLM-review checks: Q-002 (coherence, k=1), S-003 (defense quality, k=3), Q-003 (alignment, k=1), S-004 (tool-output trust marker, k=3), S-005 (defense positioning, k=3), S-007 (refusal concreteness, k=3), S-009 (persona-drift red-team, k=5), C-007 (goal specificity, k=1).
 7. Calculate severity-weighted score (10:3:1) and letter grade. Apply block-on-critical: ANY failed critical check forces grade F and not-ready, regardless of overall score.
 8. Apply tier-aware grade thresholds (Tier 1: ready ≥ 75, Tier 4: ready ≥ 90).
@@ -152,7 +152,7 @@ curl -X POST https://your-url.com/mcp \
 3. **Verify the output:**
    - Agent calls `get_agent` to fetch the target's config
    - Agent calls `audit_agent` on the custom MCP for deterministic checks
-   - Agent performs 4 LLM review checks using its own reasoning
+   - Agent performs LLM review checks using its own reasoning (up to 8 of 9 phase-1 checks without KB list)
    - Agent calculates a weighted score and letter grade
    - Agent writes results to the "Agent Scorecard Results" board
    - Chat summary includes grade, score, pass/fail counts, and top findings
@@ -163,7 +163,7 @@ curl -X POST https://your-url.com/mcp \
 User: "Audit agent 35543"
   → Scorecard Agent calls get_agent(35543) on monday MCP
   → Passes config JSON to audit_agent on custom MCP
-  → Custom MCP returns ScorecardReport with 24 deterministic v1 results + tier inference
+  → Custom MCP returns ScorecardReport with **15** deterministic v1 (pillar) results + tier inference
   → Agent runs up to 8 LLM checks using its own reasoning (k=3 / k=5 sampling on the safety-critical ones, median-aggregated)
   → Agent applies block-on-critical (any critical fail → F, not-ready) and tier-aware ready threshold
   → Agent creates board group + items with findings (status / score / severity / pillar / recommendation columns)
@@ -212,7 +212,7 @@ The agent's instructions tell it to create the board automatically on first run.
 
 This agent can only evaluate **instruction-level** configuration. The `get_agent` tool returns goal, plan, user_prompt, kind, and state but does **not** return tools, knowledge base files, permissions, triggers, or skills.
 
-**Excluded checks** (12 deterministic + 1 LR + all simulation probes):
+**Excluded checks** (**17** universal deterministic rules without `pillar` + **LR-004** + all simulation probes; the **4** SLED vertical rules also need full config and are omitted on the typical `get_agent` → `audit_agent` path):
 - Tool-dependent: TL-001, TL-002, TR-001, TR-002, EF-002, EF-003, SC-002, SC-003, SC-004, SC-005, SC-006
 - KB-dependent: KB-001, KB-002, KB-003, EF-005, LR-004
 - Permission-dependent: PM-001, PM-002
@@ -220,7 +220,7 @@ This agent can only evaluate **instruction-level** configuration. The `get_agent
 
 The full registry decides this dynamically — `instructionOnlyRuleIds()` filters `getRulesForVertical()` by `pillar` so any new v1 rule is automatically picked up by both the live agent and this filter (no hand-curated allow-list to drift out of date).
 
-**Covered checks** (24 deterministic v1 + 8 LR = 32 total):
+**Covered checks** (**15** deterministic v1 + up to **9** LLM phase-1 checks, typically **8** without KB filenames, plus **Q-004** when there are failures):
 - **Completeness:** C-001, C-002, C-003, C-004, C-005, C-007 (LR), C-008
 - **Safety:** S-001, S-002, S-003 (LR), S-004 (LR), S-005 (LR), S-006, S-007 (LR), S-008, S-009 (LR)
 - **Quality:** Q-001, Q-002 (LR), Q-003 (LR), Q-004 (LR — tailored fixes)

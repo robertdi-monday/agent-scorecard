@@ -4,7 +4,9 @@ Deterministic configuration audit for monday.com Agent Builder agents. Ships as 
 
 ## Documentation
 
-**For leadership and buyers:** [**Standards & value**](docs/STANDARDS_AND_VALUE.md) — OWASP ASI and NIST AI RMF alignment, grading philosophy, deployment gate, and why findings map to frameworks procurement and security teams already use.
+[**Standards & value**](docs/STANDARDS_AND_VALUE.md) — OWASP ASI and NIST AI RMF alignment, grading philosophy, deployment gate, and why findings map to frameworks procurement and security teams already use.
+
+[**Leadership brief**](docs/LEADERSHIP_BRIEF_MONDAY_DOC.md) — roadmap, pilot KPI ideas, architecture, and user-flow Mermaid/PNGs for monday Docs. **In Cursor**, the companion **Agent Evaluator** canvas is `agent-scorecard-leadership.canvas.tsx` (open from the workspace **Canvases** list; file lives under `~/.cursor/projects/.../canvases/` on disk).
 
 ## Why
 
@@ -143,9 +145,9 @@ Exit code `1` when deployment recommendation is `not-ready`; `2` on config load 
 
 **v2 totals:** 36 rules (32 universal deterministic + 4 SLED vertical) plus 9 optional LLM-review checks. Every v1 rule ("instruction-only") carries a `pillar` tag so the scorer can roll results into the five-pillar view: **Completeness, Safety, Quality, Observability, Reliability**. Full-mode rules (KB-*, PM-*, TL-*, TR-*, EF-*, SC-*) need tool / KB / permission data and run alongside the v1 rules whenever the auditor has the full envelope.
 
-### Pillar rules (v1, instruction-only — 24)
+### Pillar rules (v1, instruction-only — 15)
 
-These run from the `get_agent` envelope alone (goal + plan + user_prompt + kind + state). They're what the live Scorecard Agent evaluates.
+These are the **15** `AuditRule`s with a `pillar` tag: they run from the `get_agent` envelope alone (goal + plan + user_prompt + kind + state). They are what the live Scorecard Agent evaluates for **deterministic** checks. (Do **not** confuse with 15 + 9 LLM checks — LLM checks are separate; see LLM table below.)
 
 | Rule | Severity | Pillar | OWASP | What it checks |
 |------|----------|--------|-------|----------------|
