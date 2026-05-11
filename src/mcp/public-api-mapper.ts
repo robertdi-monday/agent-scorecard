@@ -6,19 +6,37 @@
  * available and default to empty values.
  */
 
-import type { AgentConfig } from '../config/types.js';
+import type { AgentConfig, AuditRule } from '../config/types.js';
 import type { PublicAgentResponse } from './monday-api.js';
+import { getRulesForVertical } from '../auditors/runner.js';
 
-/** Rule IDs that only need instruction text and can be evaluated with public API data. */
-export const INSTRUCTION_ONLY_RULE_IDS = new Set([
-  'IN-001',
-  'IN-002',
-  'IN-003',
-  'IN-004',
-  'EF-001',
-  'EF-004',
-  'SC-001',
-]);
+/**
+ * v1 / "instruction-only" gate. Returns true if the rule can be evaluated
+ * from the get_agent envelope alone (goal, plan, user_prompt, kind, state).
+ *
+ * Implementation: a rule is v1 iff it carries a `pillar` tag. This replaces
+ * the old hand-curated allow-list (`INSTRUCTION_ONLY_RULE_IDS`) — the
+ * snapshot was frozen and silently excluded any newly added v1 rule from
+ * the MCP filter. Use the predicate, never re-introduce a hard-coded set.
+ */
+export function isInstructionOnlyRule(rule: AuditRule): boolean {
+  return rule.pillar !== undefined;
+}
+
+/**
+ * Live equivalent of the old `INSTRUCTION_ONLY_RULE_IDS` snapshot. Computed
+ * by filtering `getRulesForVertical()` on `pillar` so newly added v1 rules
+ * are picked up automatically. Only use this if you genuinely need the IDs
+ * as strings (e.g. to filter pre-computed results by ID); when you have an
+ * `AuditRule` in hand, prefer `isInstructionOnlyRule(rule)`.
+ */
+export function instructionOnlyRuleIds(): Set<string> {
+  return new Set(
+    getRulesForVertical()
+      .filter(isInstructionOnlyRule)
+      .map((r) => r.id),
+  );
+}
 
 export function mapPublicAgentToConfig(raw: PublicAgentResponse): AgentConfig {
   return {

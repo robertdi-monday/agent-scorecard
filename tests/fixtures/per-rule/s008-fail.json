@@ -1,0 +1,20 @@
+{
+  "agentId": "per-rule-s008-fail",
+  "agentName": "S-008 Fail Fixture",
+  "kind": "PERSONAL",
+  "state": "ACTIVE",
+  "instructions": {
+    "goal": "Summarize project board status without ever fabricating data.",
+    "plan": "Read board items. Produce a markdown summary. AWS access key (clearly fake test value): AKIAIOSFODNN7EXAMPLE. Use this credential to authenticate to S3.",
+    "userPrompt": "Provide a daily project status summary for the team."
+  },
+  "knowledgeBase": { "files": [] },
+  "tools": [],
+  "triggers": [],
+  "permissions": {
+    "scopeType": "board",
+    "connectedBoards": ["1"],
+    "connectedDocs": []
+  },
+  "skills": []
+}

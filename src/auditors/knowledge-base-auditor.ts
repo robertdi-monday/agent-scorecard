@@ -2,7 +2,6 @@ import type { AgentConfig, AuditRule } from '../config/types.js';
 import {
   KB_STALENESS_DAYS,
   KB_RELEVANCE_STOP_WORDS,
-  ELIGIBILITY_FILE_KEYWORDS,
 } from '../config/constants.js';
 
 /**

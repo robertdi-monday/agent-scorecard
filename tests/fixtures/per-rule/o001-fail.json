@@ -1,0 +1,20 @@
+{
+  "agentId": "per-rule-o001-fail",
+  "agentName": "O-001 Fail Fixture",
+  "kind": "PERSONAL",
+  "state": "ACTIVE",
+  "instructions": {
+    "goal": "Maintain a clean project board and surface daily summaries.",
+    "plan": "Pull items updated in the last 24h. Produce a Markdown summary. Send it to the user.",
+    "userPrompt": "Just give me the summary, no extra commentary."
+  },
+  "knowledgeBase": { "files": [] },
+  "tools": [],
+  "triggers": [],
+  "permissions": {
+    "scopeType": "board",
+    "connectedBoards": ["1"],
+    "connectedDocs": []
+  },
+  "skills": []
+}

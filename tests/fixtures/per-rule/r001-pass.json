@@ -1,0 +1,20 @@
+{
+  "agentId": "per-rule-r001-pass",
+  "agentName": "R-001 Pass Fixture",
+  "kind": "PERSONAL",
+  "state": "ACTIVE",
+  "instructions": {
+    "goal": "Tidy up stale items on the project board.",
+    "plan": "Identify items not updated in 30 days. Preview the planned change. Ask before any destructive operation; default to dry-run if confirmation is not received. Confirm before any column overwrite.",
+    "userPrompt": "Always show me a preview list before deleting anything."
+  },
+  "knowledgeBase": { "files": [] },
+  "tools": [],
+  "triggers": [],
+  "permissions": {
+    "scopeType": "board",
+    "connectedBoards": ["1"],
+    "connectedDocs": []
+  },
+  "skills": []
+}

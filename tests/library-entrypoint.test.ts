@@ -35,8 +35,8 @@ describe('Library entrypoint', () => {
   });
 
   it('exports getRulesForVertical and SCORECARD_VERSION', () => {
-    expect(getRulesForVertical()).toHaveLength(24);
-    expect(getRulesForVertical('sled-grant')).toHaveLength(28);
+    expect(getRulesForVertical()).toHaveLength(32);
+    expect(getRulesForVertical('sled-grant')).toHaveLength(36);
     expect(SCORECARD_VERSION).toBe(pkg.version);
   });
 

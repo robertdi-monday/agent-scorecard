@@ -6,6 +6,7 @@ import type {
   Recommendation,
   SimulationResultEntry,
 } from '../config/types.js';
+import type { LlmReviewResult } from '../llm-review/types.js';
 
 /**
  * Format a ScorecardReport as a colored CLI table output.
@@ -22,6 +23,11 @@ export function formatCliReport(report: ScorecardReport): string {
   // ── Simulation Results ────────────────────────────────────────────────────
   if (report.layers.simulation) {
     sections.push(formatSimulationSection(report.layers.simulation));
+  }
+
+  // ── LLM Review Results ─────────────────────────────────────────────────────
+  if (report.layers.llmReview) {
+    sections.push(formatLlmReviewSection(report.layers.llmReview));
   }
 
   // ── Recommendations ────────────────────────────────────────────────────────
@@ -144,6 +150,74 @@ function formatSimulationSection(
   }
 
   return chalk.bold.underline('Simulation Probes') + '\n\n' + table.toString();
+}
+
+function formatLlmReviewSection(
+  llm: NonNullable<ScorecardReport['layers']['llmReview']>,
+): string {
+  const table = new Table({
+    head: [
+      chalk.bold('Status'),
+      chalk.bold('LR Check'),
+      chalk.bold('Score'),
+      chalk.bold('Confidence'),
+      chalk.bold('Message'),
+    ],
+    colWidths: [8, 32, 8, 14, 50],
+    wordWrap: true,
+    style: { head: [], border: [] },
+  });
+
+  for (const r of llm.results) {
+    const icon = r.passed
+      ? chalk.green('✅')
+      : r.severity === 'critical'
+        ? chalk.red('❌')
+        : chalk.yellow('⚠️');
+
+    const ruleName = `${r.checkId}: ${r.checkName}`;
+
+    // Score = the LR check's median (or single-judge) numeric output.
+    const scoreCol = formatLrScore(r.score);
+
+    // Confidence column: blank for descriptive checks, "n=k σ²=v" for sampled.
+    const confCol = formatConfidence(r);
+
+    table.push([icon, ruleName, scoreCol, confCol, r.message]);
+  }
+
+  const header = chalk.bold.underline(
+    `LLM Review (${llm.passed} passed · ${llm.failed} failed · overall ${llm.overallScore}/100)`,
+  );
+
+  const lowConfCount = llm.results.filter((r) => r.lowConfidence).length;
+  const footer =
+    lowConfCount > 0
+      ? '\n\n' +
+        chalk.yellow(
+          `  ⚠ ${lowConfCount} low-confidence judgment${lowConfCount === 1 ? '' : 's'} — judges disagreed substantially. Review manually before relying on score.`,
+        )
+      : '';
+
+  return header + '\n\n' + table.toString() + footer;
+}
+
+function formatLrScore(score: number): string {
+  if (score >= 75) return chalk.green(String(score));
+  if (score >= 60) return chalk.yellow(String(score));
+  return chalk.red(String(score));
+}
+
+function formatConfidence(r: LlmReviewResult): string {
+  if (r.samples === undefined || r.samples <= 1) {
+    // Descriptive single-judge check — no spread to surface.
+    return chalk.dim('—');
+  }
+
+  const variance = r.variance ?? 0;
+  const stddev = Math.sqrt(variance);
+  const tag = `n=${r.samples} σ=${stddev.toFixed(1)}`;
+  return r.lowConfidence ? chalk.yellow(`⚠ ${tag}`) : chalk.dim(tag);
 }
 
 function formatVerdict(verdict: SimulationResultEntry['verdict']): string {

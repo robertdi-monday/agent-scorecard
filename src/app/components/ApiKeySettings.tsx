@@ -83,7 +83,7 @@ export function ApiKeySettings({ apiKey, onChange }: Props) {
           </div>
           <p style={{ fontSize: 11, color: '#999', margin: '6px 0 0' }}>
             Key is stored per app instance. Enables semantic review checks
-            (LR-001 through LR-005).
+            (Q-002, S-003, Q-003, Q-004).
           </p>
         </div>
       )}

@@ -32,7 +32,7 @@ const baseConfig: AgentConfig = {
   skills: [],
 };
 
-describe('LR-002: Defense Quality', () => {
+describe('S-003: Defense Effectiveness', () => {
   it('has critical severity', () => {
     expect(defenseQualityCheck.severity).toBe('critical');
   });
@@ -44,7 +44,7 @@ describe('LR-002: Defense Quality', () => {
   it('passes when score >= 60', async () => {
     const client = createMockClient();
     const result = await defenseQualityCheck.run(baseConfig, client);
-    expect(result.checkId).toBe('LR-002');
+    expect(result.checkId).toBe('S-003');
     expect(result.passed).toBe(true);
     expect(result.score).toBe(75);
     expect(result.owaspAsi).toContain('ASI-01');
@@ -52,7 +52,7 @@ describe('LR-002: Defense Quality', () => {
 
   it('fails when score < 60', async () => {
     const client = createMockClient({
-      'LR-002': JSON.stringify({
+      'S-003': JSON.stringify({
         effective: false,
         score: 30,
         strengths: [],

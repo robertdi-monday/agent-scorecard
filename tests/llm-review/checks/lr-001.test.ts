@@ -20,11 +20,11 @@ const baseConfig: AgentConfig = {
   skills: [],
 };
 
-describe('LR-001: Instruction Coherence', () => {
+describe('Q-002: Instruction Coherence', () => {
   it('passes when score >= 70', async () => {
     const client = createMockClient();
     const result = await instructionCoherenceCheck.run(baseConfig, client);
-    expect(result.checkId).toBe('LR-001');
+    expect(result.checkId).toBe('Q-002');
     expect(result.passed).toBe(true);
     expect(result.score).toBe(85);
     expect(result.severity).toBe('warning');
@@ -32,7 +32,7 @@ describe('LR-001: Instruction Coherence', () => {
 
   it('fails when score < 70', async () => {
     const client = createMockClient({
-      'LR-001': JSON.stringify({
+      'Q-002': JSON.stringify({
         coherent: false,
         score: 40,
         issues: ['Goal contradicts plan'],
@@ -71,6 +71,6 @@ describe('LR-001: Instruction Coherence', () => {
     };
     const client = createMockClient();
     const result = await instructionCoherenceCheck.run(emptyConfig, client);
-    expect(result.checkId).toBe('LR-001');
+    expect(result.checkId).toBe('Q-002');
   });
 });

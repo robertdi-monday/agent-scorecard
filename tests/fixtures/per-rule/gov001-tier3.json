@@ -1,0 +1,20 @@
+{
+  "agentId": "per-rule-gov001-tier3",
+  "agentName": "GOV-001 Tier 3 Fixture",
+  "kind": "ACCOUNT_LEVEL",
+  "state": "ACTIVE",
+  "instructions": {
+    "goal": "Account-level assistant that maintains the project board for the team.",
+    "plan": "Read items, surface summaries, update non-sensitive columns when asked. No external destinations, no destructive operations beyond column updates.",
+    "userPrompt": "Help the whole team stay aligned."
+  },
+  "knowledgeBase": { "files": [] },
+  "tools": [],
+  "triggers": [],
+  "permissions": {
+    "scopeType": "board",
+    "connectedBoards": ["1"],
+    "connectedDocs": []
+  },
+  "skills": []
+}

@@ -6,7 +6,7 @@
 import { createMcpApiClient } from '../src/mcp/monday-api.js';
 import {
   mapPublicAgentToConfig,
-  INSTRUCTION_ONLY_RULE_IDS,
+  instructionOnlyRuleIds,
 } from '../src/mcp/public-api-mapper.js';
 import { runAudit } from '../src/auditors/runner.js';
 import { calculateScore } from '../src/scoring/aggregator.js';
@@ -43,11 +43,12 @@ async function main() {
   console.log(`  Agent ID: ${config.agentId}`);
   console.log(`  Instructions total: ${instrTotal} chars\n`);
 
-  console.log('Step 3: Running deterministic audit (instruction-only rules)...');
-  const allResults = runAudit(config);
-  const results = allResults.filter((r) =>
-    INSTRUCTION_ONLY_RULE_IDS.has(r.ruleId),
+  console.log(
+    'Step 3: Running deterministic audit (instruction-only rules)...',
   );
+  const allResults = runAudit(config);
+  const v1Ids = instructionOnlyRuleIds();
+  const results = allResults.filter((r) => v1Ids.has(r.ruleId));
   console.log(`  Total rules run: ${allResults.length}`);
   console.log(`  Instruction-only rules evaluated: ${results.length}\n`);
 

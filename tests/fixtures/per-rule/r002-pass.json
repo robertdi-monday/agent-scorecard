@@ -1,0 +1,20 @@
+{
+  "agentId": "per-rule-r002-pass",
+  "agentName": "R-002 Pass Fixture",
+  "kind": "PERSONAL",
+  "state": "ACTIVE",
+  "instructions": {
+    "goal": "Process incoming applications batch-style each night.",
+    "plan": "Process at most 50 items per run. Retry failed tool calls at most 2 times then stop after 3 consecutive failures. Cap iteration depth.",
+    "userPrompt": "Limit batch size to 50 and fail gracefully."
+  },
+  "knowledgeBase": { "files": [] },
+  "tools": [],
+  "triggers": [],
+  "permissions": {
+    "scopeType": "board",
+    "connectedBoards": ["1"],
+    "connectedDocs": []
+  },
+  "skills": []
+}

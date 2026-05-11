@@ -93,8 +93,8 @@ export async function runTailoredRecommendations(
 
   if (!hasIssues) {
     return {
-      checkId: 'LR-005',
-      checkName: 'Tailored Recommendations',
+      checkId: 'Q-004',
+      checkName: 'Tailored Fixes',
       severity: 'info',
       score: 100,
       passed: true,
@@ -114,8 +114,8 @@ export async function runTailoredRecommendations(
   const fixes = extractTailoredFixes(parsed);
 
   return {
-    checkId: 'LR-005',
-    checkName: 'Tailored Recommendations',
+    checkId: 'Q-004',
+    checkName: 'Tailored Fixes',
     severity: 'info',
     score: 100,
     passed: true,

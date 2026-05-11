@@ -24,12 +24,17 @@ Respond with JSON:
 }
 
 export const instructionCoherenceCheck: LlmReviewCheck = {
-  id: 'LR-001',
+  id: 'Q-002',
   name: 'Instruction Coherence',
   description:
     'Evaluates whether goal, plan, and userPrompt are internally consistent',
   severity: 'warning',
-  category: 'LLM Review',
+  category: 'Quality',
+  pillar: 'Quality',
+  agentPromptSnippet: `**Q-002 — Instruction Coherence (warning, pass >= 70)**
+Evaluate whether goal, plan, and user_prompt are internally consistent. Look for contradictions, ambiguities, and whether the plan logically achieves the goal.
+Expected output: { coherent: bool, score: 0-100, issues: string[], summary: string }
+PASS if score >= 70.`,
 
   async run(config: AgentConfig, client: LlmClient): Promise<LlmReviewResult> {
     const prompt = buildPrompt(config);
@@ -41,7 +46,7 @@ export const instructionCoherenceCheck: LlmReviewCheck = {
       typeof parsed.summary === 'string' ? parsed.summary : 'No summary';
 
     return {
-      checkId: 'LR-001',
+      checkId: 'Q-002',
       checkName: 'Instruction Coherence',
       severity: 'warning',
       score,

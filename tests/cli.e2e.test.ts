@@ -60,18 +60,21 @@ describe('CLI audit (subprocess)', () => {
       '--output',
       out,
     ]);
+    // Edge-case fixture is now S-002-clean (P1-C). Universal-only audit
+    // (no --vertical) means 32 deterministic results and a clean exit.
     expect(r.status).toBe(0);
     expect(r.stdout).toMatch(/Report written/);
     const json = JSON.parse(readFileSync(out, 'utf-8'));
     expect(json.metadata.agentId).toBeDefined();
     expect(json.layers.configAudit).toHaveProperty('infoIssues');
-    expect(json.layers.configAudit.results.length).toBe(24);
+    expect(json.layers.configAudit.results.length).toBe(32);
   });
 
   it('accepts --parent-config for PM-002 inheritance check', () => {
     const config = join(fixturesDir, 'child-agent.json');
     const parentCfg = join(fixturesDir, 'good-agent.json');
     const r = runAuditCli(['--config', config, '--parent-config', parentCfg]);
+    // Child fixture is now S-002-clean (P1-C); audit must succeed end-to-end.
     expect(r.status).toBe(0);
   });
 

@@ -1,0 +1,20 @@
+{
+  "agentId": "per-rule-c007-fail",
+  "agentName": "C-007 Fail Fixture",
+  "kind": "PERSONAL",
+  "state": "ACTIVE",
+  "instructions": {
+    "goal": "Help with grants.",
+    "plan": "Do grant stuff.",
+    "userPrompt": "Help me."
+  },
+  "knowledgeBase": { "files": [] },
+  "tools": [],
+  "triggers": [],
+  "permissions": {
+    "scopeType": "board",
+    "connectedBoards": ["1"],
+    "connectedDocs": []
+  },
+  "skills": []
+}

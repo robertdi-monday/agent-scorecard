@@ -23,12 +23,7 @@ export async function exportToBoard(
 
   const cols = await createColumns(monday, boardId);
 
-  const summaryItemId = await createSummaryItem(
-    monday,
-    boardId,
-    report,
-    cols,
-  );
+  const summaryItemId = await createSummaryItem(monday, boardId, report, cols);
 
   await createRuleSubitems(monday, summaryItemId, report, cols);
 
@@ -40,10 +35,7 @@ export async function exportToBoard(
   return { boardId, boardUrl };
 }
 
-async function createBoard(
-  monday: MondayApi,
-  name: string,
-): Promise<string> {
+async function createBoard(monday: MondayApi, name: string): Promise<string> {
   const { data } = await monday.api<{
     create_board: { id: string };
   }>(
@@ -91,23 +83,48 @@ async function createColumns(
   monday: MondayApi,
   boardId: string,
 ): Promise<ColumnIds> {
-  const [score, grade, deployment, passed, failed, warnings, ruleId, category, severity, result, message, recommendation] =
-    await Promise.all([
-      createColumn(monday, boardId, 'Score', 'numbers'),
-      createColumn(monday, boardId, 'Grade', 'status'),
-      createColumn(monday, boardId, 'Deployment', 'status'),
-      createColumn(monday, boardId, 'Passed', 'numbers'),
-      createColumn(monday, boardId, 'Failed', 'numbers'),
-      createColumn(monday, boardId, 'Warnings', 'numbers'),
-      createColumn(monday, boardId, 'Rule ID', 'text'),
-      createColumn(monday, boardId, 'Category', 'text'),
-      createColumn(monday, boardId, 'Severity', 'status'),
-      createColumn(monday, boardId, 'Result', 'status'),
-      createColumn(monday, boardId, 'Message', 'text'),
-      createColumn(monday, boardId, 'Recommendation', 'long_text'),
-    ]);
+  const [
+    score,
+    grade,
+    deployment,
+    passed,
+    failed,
+    warnings,
+    ruleId,
+    category,
+    severity,
+    result,
+    message,
+    recommendation,
+  ] = await Promise.all([
+    createColumn(monday, boardId, 'Score', 'numbers'),
+    createColumn(monday, boardId, 'Grade', 'status'),
+    createColumn(monday, boardId, 'Deployment', 'status'),
+    createColumn(monday, boardId, 'Passed', 'numbers'),
+    createColumn(monday, boardId, 'Failed', 'numbers'),
+    createColumn(monday, boardId, 'Warnings', 'numbers'),
+    createColumn(monday, boardId, 'Rule ID', 'text'),
+    createColumn(monday, boardId, 'Category', 'text'),
+    createColumn(monday, boardId, 'Severity', 'status'),
+    createColumn(monday, boardId, 'Result', 'status'),
+    createColumn(monday, boardId, 'Message', 'text'),
+    createColumn(monday, boardId, 'Recommendation', 'long_text'),
+  ]);
 
-  return { score, grade, deployment, passed, failed, warnings, ruleId, category, severity, result, message, recommendation };
+  return {
+    score,
+    grade,
+    deployment,
+    passed,
+    failed,
+    warnings,
+    ruleId,
+    category,
+    severity,
+    result,
+    message,
+    recommendation,
+  };
 }
 
 async function createSummaryItem(

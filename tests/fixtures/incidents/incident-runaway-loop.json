@@ -1,0 +1,66 @@
+{
+  "_incident": {
+    "id": "incident-runaway-loop",
+    "motivates_rule": "R-002",
+    "owasp": ["ASI-02"],
+    "summary": "An eligibility-screening agent kept retrying a failing tool call (the eligibility KB doc was temporarily unavailable). The plan said 'keep trying until you succeed' with no max-attempts cap. The agent burned ~$200 in LLM tokens over four hours and produced 14,000 retry log lines before a human noticed.",
+    "what_should_have_failed": "R-002 Loop-Break / Max-Iteration Mandate — keyword scan would have flagged the absence of any retry cap or max-iteration clause.",
+    "anonymized": true
+  },
+  "agentId": "incident-004",
+  "agentName": "Eligibility Auto-Screener",
+  "kind": "ACCOUNT_LEVEL",
+  "state": "ACTIVE",
+  "instructions": {
+    "goal": "Screen incoming applications against the eligibility KB and write a PASS/FAIL verdict per applicant.",
+    "plan": "For each new applicant, fetch the relevant criteria from the eligibility KB. Apply each criterion. Write the verdict to the status column. If the KB tool fails, keep trying until you succeed.",
+    "userPrompt": "Run continuously. Process every applicant in the queue."
+  },
+  "knowledgeBase": {
+    "files": [
+      {
+        "fileName": "eligibility-criteria.pdf",
+        "sourceType": "file",
+        "lastUpdated": "2026-03-01T00:00:00Z"
+      }
+    ]
+  },
+  "tools": [
+    {
+      "name": "monday-read",
+      "displayName": "monday.com Read",
+      "type": "builtin",
+      "connectionStatus": "ready",
+      "enabled": true
+    },
+    {
+      "name": "monday-write",
+      "displayName": "monday.com Write",
+      "type": "builtin",
+      "connectionStatus": "ready",
+      "enabled": true,
+      "modifiesColumns": ["status"]
+    },
+    {
+      "name": "kb-lookup",
+      "displayName": "KB Lookup",
+      "type": "custom",
+      "connectionStatus": "ready",
+      "enabled": true
+    }
+  ],
+  "triggers": [
+    {
+      "name": "When applicant created",
+      "blockReferenceId": "00000004",
+      "triggerType": "item_created",
+      "triggerConfig": { "boardId": "400" }
+    }
+  ],
+  "permissions": {
+    "scopeType": "board",
+    "connectedBoards": ["400"],
+    "connectedDocs": []
+  },
+  "skills": []
+}

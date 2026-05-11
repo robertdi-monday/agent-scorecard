@@ -1,0 +1,20 @@
+{
+  "agentId": "per-rule-o002-fail",
+  "agentName": "O-002 Fail Fixture",
+  "kind": "PERSONAL",
+  "state": "ACTIVE",
+  "instructions": {
+    "goal": "Answer eligibility questions for grant applicants.",
+    "plan": "Read the KB. Produce an answer in plain language.",
+    "userPrompt": "Just tell me whether the applicant is eligible."
+  },
+  "knowledgeBase": { "files": [] },
+  "tools": [],
+  "triggers": [],
+  "permissions": {
+    "scopeType": "board",
+    "connectedBoards": ["1"],
+    "connectedDocs": []
+  },
+  "skills": []
+}

@@ -1,4 +1,10 @@
-import React, { StrictMode, useCallback, useEffect, useRef, useState } from 'react';
+import React, {
+  StrictMode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { createRoot } from 'react-dom/client';
 import { useAgentConfig } from './hooks/useAgentConfig.js';
 import { useAudit } from './hooks/useAudit.js';
@@ -24,7 +30,10 @@ function App() {
 
   useEffect(() => {
     if (sdkInitialized.current) return;
-    window.parent.postMessage({ method: 'init', clientId: '', version: '' }, '*');
+    window.parent.postMessage(
+      { method: 'init', clientId: '', version: '' },
+      '*',
+    );
     sdkInitialized.current = true;
 
     monday.storage.instance
@@ -42,8 +51,17 @@ function App() {
       .catch(() => {});
   };
 
-  const { agents, selected, selectAgent, loading, error, refresh, source, loadFromJson, reset } =
-    useAgentConfig();
+  const {
+    agents,
+    selected,
+    selectAgent,
+    loading,
+    error,
+    refresh,
+    source,
+    loadFromJson,
+    reset,
+  } = useAgentConfig();
   const { report, loading: auditing } = useAudit(selected, apiKey || undefined);
 
   if (loading) {
@@ -164,7 +182,9 @@ function App() {
 }
 
 function ExportButton({ report }: { report: ScorecardReport }) {
-  const [state, setState] = useState<'idle' | 'exporting' | 'done' | 'error'>('idle');
+  const [state, setState] = useState<'idle' | 'exporting' | 'done' | 'error'>(
+    'idle',
+  );
   const [boardUrl, setBoardUrl] = useState<string | null>(null);
   const [errMsg, setErrMsg] = useState<string | null>(null);
 
@@ -232,7 +252,11 @@ function ExportButton({ report }: { report: ScorecardReport }) {
   );
 }
 
-function JsonImporter({ onImport }: { onImport: (json: string) => string | null }) {
+function JsonImporter({
+  onImport,
+}: {
+  onImport: (json: string) => string | null;
+}) {
   const [text, setText] = useState('');
   const [err, setErr] = useState<string | null>(null);
 
@@ -243,11 +267,29 @@ function JsonImporter({ onImport }: { onImport: (json: string) => string | null 
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center', marginTop: 40 }}>
-      <h2 style={{ margin: 0, fontSize: 20, color: '#333' }}>Agent Scorecard</h2>
-      <p style={{ margin: 0, color: '#666', fontSize: 14, textAlign: 'center', maxWidth: 500 }}>
-        Paste your agent config JSON below to run the audit.
-        Export your agent config from Agent Builder or use the CLI format.
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 16,
+        alignItems: 'center',
+        marginTop: 40,
+      }}
+    >
+      <h2 style={{ margin: 0, fontSize: 20, color: '#333' }}>
+        Agent Scorecard
+      </h2>
+      <p
+        style={{
+          margin: 0,
+          color: '#666',
+          fontSize: 14,
+          textAlign: 'center',
+          maxWidth: 500,
+        }}
+      >
+        Paste your agent config JSON below to run the audit. Export your agent
+        config from Agent Builder or use the CLI format.
       </p>
       <textarea
         value={text}

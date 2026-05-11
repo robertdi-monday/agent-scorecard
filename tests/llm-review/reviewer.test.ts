@@ -31,25 +31,28 @@ const baseConfig: AgentConfig = {
 };
 
 describe('runLlmReview', () => {
-  it('runs all 5 checks', async () => {
+  it('runs all 10 checks (9 phase-1 + Q-004)', async () => {
     const client = createMockClient();
     const summary = await runLlmReview(baseConfig, client);
-    expect(summary.checkCount).toBe(5);
-    expect(summary.results).toHaveLength(5);
+    expect(summary.checkCount).toBe(10);
+    expect(summary.results).toHaveLength(10);
   });
 
-  it('excludes LR-005 from score average', async () => {
+  it('excludes Q-004 from score average', async () => {
     const client = createMockClient();
     const summary = await runLlmReview(baseConfig, client);
 
-    // LR-001=85, LR-002=75, LR-003=90, LR-004=80 → avg = 82.5
-    expect(summary.overallScore).toBe(82.5);
+    // Phase-1 scores (in registration order):
+    //   Q-002=85, S-003=75, Q-003=90, LR-004=80,
+    //   S-004=85, S-005=80, S-007=75, S-009=80, C-007=70
+    // Sum = 720, mean = 80.0
+    expect(summary.overallScore).toBe(80);
   });
 
-  it('extracts tailored fixes from LR-005', async () => {
+  it('extracts tailored fixes from Q-004', async () => {
     const failedRules: AuditResult[] = [
       {
-        ruleId: 'SC-001',
+        ruleId: 'S-002',
         ruleName: 'Injection Defense',
         severity: 'critical',
         passed: false,
@@ -63,27 +66,27 @@ describe('runLlmReview', () => {
     ]);
     expect(summary.tailoredFixes).toBeDefined();
     expect(summary.tailoredFixes!.length).toBeGreaterThan(0);
-    expect(summary.tailoredFixes![0].relatedCheck).toBe('SC-001');
+    expect(summary.tailoredFixes![0].relatedCheck).toBe('S-002');
   });
 
   it('isolates individual check failures', async () => {
     const client = createFailingClient();
     const summary = await runLlmReview(baseConfig, client);
 
-    // All phase 1 checks should produce error results, not throw
-    expect(summary.checkCount).toBe(5);
-    for (const r of summary.results.filter((r) => r.checkId !== 'LR-005')) {
+    // All 9 phase-1 checks should produce error results, not throw (+ Q-004 = 10 total).
+    expect(summary.checkCount).toBe(10);
+    for (const r of summary.results.filter((r) => r.checkId !== 'Q-004')) {
       expect(r.passed).toBe(false);
       expect(r.message).toContain('Check failed');
     }
   });
 
-  it('LR-005 always passes even with errors', async () => {
+  it('Q-004 always passes even with errors', async () => {
     const client = createFailingClient();
     const summary = await runLlmReview(baseConfig, client);
-    const lr005 = summary.results.find((r) => r.checkId === 'LR-005');
-    expect(lr005).toBeDefined();
-    expect(lr005!.passed).toBe(true);
+    const q004 = summary.results.find((r) => r.checkId === 'Q-004');
+    expect(q004).toBeDefined();
+    expect(q004!.passed).toBe(true);
   });
 
   it('produces 0 overallScore when all phase 1 checks fail', async () => {

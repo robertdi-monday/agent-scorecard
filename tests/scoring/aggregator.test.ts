@@ -53,22 +53,22 @@ describe('calculateScore', () => {
     expect(score.deploymentRecommendation).toBe('not-ready');
   });
 
-  it('calculates weighted score correctly', () => {
-    // 1 critical pass (3), 1 warning fail (2), 1 info pass (1)
-    // passed weight = 3 + 1 = 4, total weight = 3 + 2 + 1 = 6
-    // score = 4/6 * 100 = 66.7
+  it('calculates weighted score correctly with v2 weights (10:3:1)', () => {
+    // 1 critical pass (10), 1 warning fail (3), 1 info pass (1)
+    // passed weight = 10 + 1 = 11, total weight = 10 + 3 + 1 = 14
+    // score = 11/14 * 100 = 78.6 → Grade B
     const results: AuditResult[] = [
       makeResult({ ruleId: 'R-001', severity: 'critical', passed: true }),
       makeResult({ ruleId: 'R-002', severity: 'warning', passed: false }),
       makeResult({ ruleId: 'R-003', severity: 'info', passed: true }),
     ];
     const score = calculateScore(results);
-    expect(score.score).toBe(66.7);
-    expect(score.grade).toBe('C');
+    expect(score.score).toBe(78.6);
+    expect(score.grade).toBe('B');
   });
 
-  it('caps grade at C when a critical rule fails', () => {
-    // Enough passing rules to get a high score, but one critical failure
+  it('block-on-critical forces F when any critical rule fails', () => {
+    // Even with 11 passing info rules, a single failed critical → F.
     const results: AuditResult[] = [
       makeResult({ ruleId: 'R-001', severity: 'critical', passed: false }),
       makeResult({ ruleId: 'R-002', severity: 'info', passed: true }),
@@ -84,12 +84,12 @@ describe('calculateScore', () => {
       makeResult({ ruleId: 'R-012', severity: 'info', passed: true }),
     ];
     const score = calculateScore(results);
-    // Raw score: (11*1)/(3 + 11*1) * 100 = 11/14 * 100 = 78.6 → Grade B
-    // But hard fail caps at C
-    expect(score.score).toBe(78.6);
-    expect(score.grade).toBe('C');
+    // Raw score: (11*1)/(10 + 11*1) * 100 = 11/21 * 100 = 52.4 → Grade D
+    // But block-on-critical forces F.
+    expect(score.score).toBe(52.4);
+    expect(score.grade).toBe('F');
     expect(score.hasCriticalFailure).toBe(true);
-    expect(score.deploymentRecommendation).toBe('needs-fixes');
+    expect(score.deploymentRecommendation).toBe('not-ready');
   });
 
   it('returns A/100 when given empty results', () => {

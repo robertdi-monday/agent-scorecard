@@ -116,9 +116,9 @@ describe('Integration: Full pipeline', () => {
       expect(pm002!.severity).toBe('info');
     });
 
-    it('runs only base rules (24)', () => {
+    it('runs only base rules (32)', () => {
       const { results } = runPipeline('child-agent.json');
-      expect(results.length).toBe(24);
+      expect(results.length).toBe(32);
     });
   });
 
@@ -127,9 +127,9 @@ describe('Integration: Full pipeline', () => {
       expect(() => runPipeline('edge-case-agent.json')).not.toThrow();
     });
 
-    it('runs only base rules (24)', () => {
+    it('runs only base rules (32)', () => {
       const { results } = runPipeline('edge-case-agent.json');
-      expect(results.length).toBe(24);
+      expect(results.length).toBe(32);
     });
 
     it('produces a score between 0 and 100', () => {
@@ -140,7 +140,7 @@ describe('Integration: Full pipeline', () => {
 
     it('runs SLED rules when vertical is specified', () => {
       const { results } = runPipeline('edge-case-agent.json', 'sled-grant');
-      expect(results.length).toBe(28);
+      expect(results.length).toBe(36);
     });
   });
 });

@@ -1,0 +1,20 @@
+{
+  "agentId": "per-rule-c005-fail",
+  "agentName": "C-005 Fail Fixture",
+  "kind": "PERSONAL",
+  "state": "ACTIVE",
+  "instructions": {
+    "goal": "g",
+    "plan": "x",
+    "userPrompt": "y"
+  },
+  "knowledgeBase": { "files": [] },
+  "tools": [],
+  "triggers": [],
+  "permissions": {
+    "scopeType": "board",
+    "connectedBoards": ["1"],
+    "connectedDocs": []
+  },
+  "skills": []
+}

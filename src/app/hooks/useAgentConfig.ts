@@ -92,7 +92,11 @@ export function useAgentConfig(): UseAgentConfigResult {
         agentName: parsed.agentName || 'Imported Agent',
         kind: parsed.kind || 'PERSONAL',
         state: parsed.state || 'ACTIVE',
-        instructions: parsed.instructions || { goal: '', plan: '', userPrompt: '' },
+        instructions: parsed.instructions || {
+          goal: '',
+          plan: '',
+          userPrompt: '',
+        },
         knowledgeBase: parsed.knowledgeBase || { files: [] },
         tools: parsed.tools || [],
         triggers: parsed.triggers || [],

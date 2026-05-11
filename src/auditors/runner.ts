@@ -8,9 +8,13 @@ import { knowledgeBaseRules } from './knowledge-base-auditor.js';
 import { permissionRules } from './permission-auditor.js';
 import { toolRules } from './tool-auditor.js';
 import { triggerRules } from './trigger-auditor.js';
-import { instructionRules } from './instruction-auditor.js';
+import { completenessRules } from './completeness-auditor.js';
+import { qualityRules } from './quality-auditor.js';
 import { efficiencyRules } from './efficiency-auditor.js';
+import { safetyRules } from './safety-auditor.js';
 import { securityRules } from './security-auditor.js';
+import { observabilityRules } from './observability-auditor.js';
+import { reliabilityRules } from './reliability-auditor.js';
 import { sledRules } from './sled-auditor.js';
 
 /** All universal rules (no vertical filter). */
@@ -19,9 +23,13 @@ const BASE_RULES: AuditRule[] = [
   ...permissionRules,
   ...toolRules,
   ...triggerRules,
-  ...instructionRules,
+  ...completenessRules,
+  ...qualityRules,
   ...efficiencyRules,
+  ...safetyRules,
   ...securityRules,
+  ...observabilityRules,
+  ...reliabilityRules,
 ];
 
 /** Vertical-specific rule packs keyed by vertical name. */
@@ -43,6 +51,8 @@ export function getRulesForVertical(vertical?: string): AuditRule[] {
 
 /**
  * Run all applicable audit rules against the config and return results.
+ * Each result is annotated with its source rule's `pillar` (if defined),
+ * which downstream scoring uses to bucket into per-pillar reports.
  */
 export function runAudit(
   config: AgentConfig,
@@ -50,5 +60,11 @@ export function runAudit(
   context?: AuditContext,
 ): AuditResult[] {
   const rules = getRulesForVertical(vertical);
-  return rules.map((rule) => rule.check(config, context));
+  return rules.map((rule) => {
+    const result = rule.check(config, context);
+    if (rule.pillar && !result.pillar) {
+      return { ...result, pillar: rule.pillar };
+    }
+    return result;
+  });
 }

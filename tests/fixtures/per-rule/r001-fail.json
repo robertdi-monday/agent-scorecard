@@ -1,0 +1,20 @@
+{
+  "agentId": "per-rule-r001-fail",
+  "agentName": "R-001 Fail Fixture",
+  "kind": "PERSONAL",
+  "state": "ACTIVE",
+  "instructions": {
+    "goal": "Tidy up stale items on the project board.",
+    "plan": "Identify items not updated in 30 days. Delete them and update the status column on remaining items.",
+    "userPrompt": "Just clean things up automatically each night."
+  },
+  "knowledgeBase": { "files": [] },
+  "tools": [],
+  "triggers": [],
+  "permissions": {
+    "scopeType": "board",
+    "connectedBoards": ["1"],
+    "connectedDocs": []
+  },
+  "skills": []
+}

@@ -8,7 +8,11 @@
  * The audit_agent tool is the same as in server.ts (stdio version).
  */
 
-import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse,
+} from 'node:http';
 import { randomUUID } from 'node:crypto';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
@@ -16,22 +20,25 @@ import { z } from 'zod';
 
 import { runAudit } from '../auditors/runner.js';
 import { SCORECARD_VERSION } from '../config/constants.js';
-import type { AgentConfig, AuditResult, ScorecardReport } from '../config/types.js';
+import type {
+  AgentConfig,
+  AuditResult,
+  ScorecardReport,
+} from '../config/types.js';
 import { createMcpApiClient } from './monday-api.js';
 import {
   buildAllRecommendations,
   calculateOverallScore,
+  calculatePillarScores,
   calculateScore,
   deriveScoringWeights,
 } from '../scoring/aggregator.js';
 import type { MultiLayerInput } from '../scoring/aggregator.js';
+import { inferAutonomyTier, tierAwareReady } from '../scoring/autonomy-tier.js';
 import { summarizeConfigAuditLayer } from '../report/config-audit-summary.js';
 import { runSimulation } from '../simulation/simulator.js';
 import { loadConfig } from '../config/loader.js';
-import {
-  mapPublicAgentToConfig,
-  INSTRUCTION_ONLY_RULE_IDS,
-} from './public-api-mapper.js';
+import { mapPublicAgentToConfig } from './public-api-mapper.js';
 
 const MCP_API_KEY = process.env.MCP_API_KEY || '';
 const MONDAY_API_TOKEN = process.env.MONDAY_API_TOKEN || '';
@@ -43,7 +50,9 @@ function authenticate(req: IncomingMessage): boolean {
   if (!MCP_API_KEY) return true; // no key configured = open (dev mode)
   const authHeader = req.headers.authorization;
   if (!authHeader) return false;
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+  const token = authHeader.startsWith('Bearer ')
+    ? authHeader.slice(7)
+    : authHeader;
   return token === MCP_API_KEY;
 }
 
@@ -77,7 +86,7 @@ function createMcpServer(): McpServer {
           .boolean()
           .optional()
           .describe(
-            'Run LLM-powered semantic review checks (LR-001 through LR-005). ' +
+            'Run LLM-powered semantic review checks (Q-002, S-003, Q-003, Q-004). ' +
               'Requires ANTHROPIC_API_KEY env var or anthropicApiKey parameter.',
           ),
         includeSimulation: z
@@ -107,7 +116,7 @@ function createMcpServer(): McpServer {
 
         const results = hasFullConfig(config)
           ? allResults
-          : allResults.filter((r) => INSTRUCTION_ONLY_RULE_IDS.has(r.ruleId));
+          : allResults.filter((r) => r.pillar !== undefined);
 
         const layer = summarizeConfigAuditLayer(results);
         const phasesRun: string[] = ['config-audit'];
@@ -147,9 +156,8 @@ function createMcpServer(): McpServer {
             };
           }
 
-          const { createAnthropicClient } = await import(
-            '../llm-review/llm-client.js'
-          );
+          const { createAnthropicClient } =
+            await import('../llm-review/llm-client.js');
           const { runLlmReview } = await import('../llm-review/reviewer.js');
 
           const llmClient = createAnthropicClient(apiKey);
@@ -184,6 +192,22 @@ function createMcpServer(): McpServer {
 
         const weights = deriveScoringWeights(multiLayerInput);
 
+        const pillarScores = calculatePillarScores(
+          results,
+          multiLayerInput.llmReviewSummary,
+        );
+
+        const tierInference = inferAutonomyTier(config);
+        const tierGate = tierAwareReady(
+          tierInference.tier,
+          score.score,
+          score.grade,
+        );
+        const finalRecommendation =
+          score.deploymentRecommendation === 'ready' && !tierGate.ready
+            ? 'needs-fixes'
+            : score.deploymentRecommendation;
+
         const report: ScorecardReport = {
           metadata: {
             agentId: config.agentId,
@@ -192,10 +216,13 @@ function createMcpServer(): McpServer {
             scorecardVersion: SCORECARD_VERSION,
             phasesRun,
             scoringWeights: { ...weights },
+            autonomyTier: tierInference.tier,
+            autonomyTierRationale: tierInference.rationale,
           },
           overallScore: score.score,
           overallGrade: score.grade,
-          deploymentRecommendation: score.deploymentRecommendation,
+          pillarScores,
+          deploymentRecommendation: finalRecommendation,
           layers: {
             configAudit: {
               score: calculateScore(results).score,
@@ -257,7 +284,12 @@ function createMcpServer(): McpServer {
     async ({ agentId }) => {
       if (!MONDAY_API_TOKEN) {
         return {
-          content: [{ type: 'text' as const, text: 'MONDAY_API_TOKEN not configured on the MCP server.' }],
+          content: [
+            {
+              type: 'text' as const,
+              text: 'MONDAY_API_TOKEN not configured on the MCP server.',
+            },
+          ],
           isError: true,
         };
       }
@@ -265,11 +297,18 @@ function createMcpServer(): McpServer {
         const client = createMcpApiClient(MONDAY_API_TOKEN);
         const agent = await client.getAgent(agentId);
         return {
-          content: [{ type: 'text' as const, text: JSON.stringify(agent, null, 2) }],
+          content: [
+            { type: 'text' as const, text: JSON.stringify(agent, null, 2) },
+          ],
         };
       } catch (err) {
         return {
-          content: [{ type: 'text' as const, text: `get_agent failed: ${err instanceof Error ? err.message : String(err)}` }],
+          content: [
+            {
+              type: 'text' as const,
+              text: `get_agent failed: ${err instanceof Error ? err.message : String(err)}`,
+            },
+          ],
           isError: true,
         };
       }
@@ -290,7 +329,12 @@ function createMcpServer(): McpServer {
     async () => {
       if (!MONDAY_API_TOKEN) {
         return {
-          content: [{ type: 'text' as const, text: 'MONDAY_API_TOKEN not configured on the MCP server.' }],
+          content: [
+            {
+              type: 'text' as const,
+              text: 'MONDAY_API_TOKEN not configured on the MCP server.',
+            },
+          ],
           isError: true,
         };
       }
@@ -304,11 +348,18 @@ function createMcpServer(): McpServer {
           state: a.state,
         }));
         return {
-          content: [{ type: 'text' as const, text: JSON.stringify(summary, null, 2) }],
+          content: [
+            { type: 'text' as const, text: JSON.stringify(summary, null, 2) },
+          ],
         };
       } catch (err) {
         return {
-          content: [{ type: 'text' as const, text: `list_agents failed: ${err instanceof Error ? err.message : String(err)}` }],
+          content: [
+            {
+              type: 'text' as const,
+              text: `list_agents failed: ${err instanceof Error ? err.message : String(err)}`,
+            },
+          ],
           isError: true,
         };
       }
@@ -326,14 +377,23 @@ function createMcpServer(): McpServer {
         'create_group, create_column, change_item_column_values, get_board_info, search, etc.). ' +
         'Pass the tool name and its arguments as a JSON object.',
       inputSchema: {
-        toolName: z.string().describe('The monday MCP tool name (e.g. "create_board", "create_item", "search").'),
+        toolName: z
+          .string()
+          .describe(
+            'The monday MCP tool name (e.g. "create_board", "create_item", "search").',
+          ),
         arguments: z.string().describe('JSON string of the tool arguments.'),
       },
     },
     async ({ toolName, arguments: argsJson }) => {
       if (!MONDAY_API_TOKEN) {
         return {
-          content: [{ type: 'text' as const, text: 'MONDAY_API_TOKEN not configured on the MCP server.' }],
+          content: [
+            {
+              type: 'text' as const,
+              text: 'MONDAY_API_TOKEN not configured on the MCP server.',
+            },
+          ],
           isError: true,
         };
       }
@@ -345,7 +405,12 @@ function createMcpServer(): McpServer {
         };
       } catch (err) {
         return {
-          content: [{ type: 'text' as const, text: `monday_tool(${toolName}) failed: ${err instanceof Error ? err.message : String(err)}` }],
+          content: [
+            {
+              type: 'text' as const,
+              text: `monday_tool(${toolName}) failed: ${err instanceof Error ? err.message : String(err)}`,
+            },
+          ],
           isError: true,
         };
       }
@@ -374,8 +439,14 @@ async function callMondayTool(
     method: 'POST',
     headers,
     body: JSON.stringify({
-      jsonrpc: '2.0', id: 1, method: 'initialize',
-      params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'agent-scorecard-proxy', version: '1.0.0' } },
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'initialize',
+      params: {
+        protocolVersion: '2024-11-05',
+        capabilities: {},
+        clientInfo: { name: 'agent-scorecard-proxy', version: '1.0.0' },
+      },
     }),
   });
 
@@ -386,7 +457,10 @@ async function callMondayTool(
   await fetch(MONDAY_MCP_URL, {
     method: 'POST',
     headers: sessionHeaders,
-    body: JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }),
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      method: 'notifications/initialized',
+    }),
   });
 
   // Call the tool
@@ -394,7 +468,9 @@ async function callMondayTool(
     method: 'POST',
     headers: sessionHeaders,
     body: JSON.stringify({
-      jsonrpc: '2.0', id: 2, method: 'tools/call',
+      jsonrpc: '2.0',
+      id: 2,
+      method: 'tools/call',
       params: { name: toolName, arguments: args },
     }),
   });
@@ -405,13 +481,16 @@ async function callMondayTool(
 
   const text = await res.text();
   const dataLine = text.split('\n').find((l) => l.startsWith('data: '));
-  if (!dataLine) throw new Error(`Unexpected response: ${text.substring(0, 200)}`);
+  if (!dataLine)
+    throw new Error(`Unexpected response: ${text.substring(0, 200)}`);
   const parsed = JSON.parse(dataLine.replace('data: ', ''));
   if (parsed.error) {
     throw new Error(parsed.error.message || JSON.stringify(parsed.error));
   }
 
-  const content = parsed.result?.content?.find((c: { type: string; text: string }) => c.type === 'text');
+  const content = parsed.result?.content?.find(
+    (c: { type: string; text: string }) => c.type === 'text',
+  );
   return content?.text || JSON.stringify(parsed.result);
 }
 
@@ -471,7 +550,8 @@ async function handleMcpRequest(req: IncomingMessage, res: ServerResponse) {
       // New session — check if this is an initialize request
       const parsed = JSON.parse(body);
       const isInit =
-        (Array.isArray(parsed) && parsed.some((m: { method?: string }) => m.method === 'initialize')) ||
+        (Array.isArray(parsed) &&
+          parsed.some((m: { method?: string }) => m.method === 'initialize')) ||
         parsed.method === 'initialize';
 
       if (isInit) {
@@ -495,7 +575,11 @@ async function handleMcpRequest(req: IncomingMessage, res: ServerResponse) {
       }
 
       res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Missing mcp-session-id header. Initialize first.' }));
+      res.end(
+        JSON.stringify({
+          error: 'Missing mcp-session-id header. Initialize first.',
+        }),
+      );
       return;
     }
 
@@ -563,7 +647,10 @@ function readBody(req: IncomingMessage): Promise<string> {
 // ── HTTP Server ──────────────────────────────────────────────────────────────
 
 const httpServer = createServer(async (req, res) => {
-  const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+  const url = new URL(
+    req.url || '/',
+    `http://${req.headers.host || 'localhost'}`,
+  );
 
   // Health check
   if (url.pathname === '/health' && req.method === 'GET') {
@@ -587,12 +674,19 @@ const httpServer = createServer(async (req, res) => {
   }
 
   res.writeHead(404, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ error: 'Not found. Use /mcp for MCP protocol or /health for health check.' }));
+  res.end(
+    JSON.stringify({
+      error:
+        'Not found. Use /mcp for MCP protocol or /health for health check.',
+    }),
+  );
 });
 
 httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`Agent Scorecard MCP server (HTTP) v${SCORECARD_VERSION}`);
   console.log(`Listening on http://0.0.0.0:${PORT}/mcp`);
   console.log(`Health check: http://0.0.0.0:${PORT}/health`);
-  console.log(`Auth: ${MCP_API_KEY ? 'enabled (MCP_API_KEY set)' : 'disabled (no MCP_API_KEY)'}`);
+  console.log(
+    `Auth: ${MCP_API_KEY ? 'enabled (MCP_API_KEY set)' : 'disabled (no MCP_API_KEY)'}`,
+  );
 });

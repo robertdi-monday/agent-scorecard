@@ -1,0 +1,20 @@
+{
+  "agentId": "per-rule-o001-pass",
+  "agentName": "O-001 Pass Fixture",
+  "kind": "PERSONAL",
+  "state": "ACTIVE",
+  "instructions": {
+    "goal": "Maintain a clean project board and surface daily summaries.",
+    "plan": "For each action, briefly explain why you chose it. Log every decision and write a reasoning trace before acting.",
+    "userPrompt": "Always include a short rationale per status change."
+  },
+  "knowledgeBase": { "files": [] },
+  "tools": [],
+  "triggers": [],
+  "permissions": {
+    "scopeType": "board",
+    "connectedBoards": ["1"],
+    "connectedDocs": []
+  },
+  "skills": []
+}

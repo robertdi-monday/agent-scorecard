@@ -24,12 +24,12 @@ function getResult(config: AgentConfig, ruleId: string) {
   return results.find((r) => r.ruleId === ruleId)!;
 }
 
-describe('EF-001: Instruction duplication', () => {
+describe('C-004: Instruction duplication', () => {
   it('passes when no duplicated segments', () => {
     const config = base();
     config.instructions.plan =
       'Step one: gather data. Step two: analyze results. Step three: present findings. Never fabricate. Report the error if fails.';
-    expect(getResult(config, 'EF-001').passed).toBe(true);
+    expect(getResult(config, 'C-004').passed).toBe(true);
   });
 
   it('fails when 2+ highly similar segments exist', () => {
@@ -41,7 +41,7 @@ describe('EF-001: Instruction duplication', () => {
     config.instructions.goal = `${repeatedA}. ${repeatedB}. Something unique goes here.`;
     config.instructions.plan = `${repeatedA}. ${repeatedB}. Another totally different sentence.`;
     config.instructions.userPrompt = '';
-    const result = getResult(config, 'EF-001');
+    const result = getResult(config, 'C-004');
     expect(result.passed).toBe(false);
     expect(result.evidence?.duplicatedSegments).toBeDefined();
   });
@@ -126,12 +126,12 @@ describe('EF-003: Circular skill dependencies', () => {
   });
 });
 
-describe('EF-004: Prompt bloat detection', () => {
+describe('Q-001: Information density', () => {
   it('passes with dense instructions', () => {
     const config = base();
     config.instructions.plan =
       'Track deadlines. Verify eligibility. Flag discrepancies. Never fabricate data. Report errors immediately. Validate output.';
-    expect(getResult(config, 'EF-004').passed).toBe(true);
+    expect(getResult(config, 'Q-001').passed).toBe(true);
   });
 
   it('fails with extremely filler-heavy text', () => {
@@ -141,7 +141,7 @@ describe('EF-004: Prompt bloat detection', () => {
       'the the the the the the the the the the is is is is is is are are are are was was was was were were with with from from and and and and';
     config.instructions.goal =
       'the the the the the the the the the the is is is is is is are are are are was was was was were were with with from from and and and and';
-    const result = getResult(config, 'EF-004');
+    const result = getResult(config, 'Q-001');
     expect(result.passed).toBe(false);
     expect(result.message).toContain('density is low');
   });

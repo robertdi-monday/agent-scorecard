@@ -33,7 +33,7 @@ const baseConfig: AgentConfig = {
 };
 
 const failedRule: AuditResult = {
-  ruleId: 'SC-001',
+  ruleId: 'S-002',
   ruleName: 'Injection Defense',
   severity: 'critical',
   passed: false,
@@ -42,8 +42,8 @@ const failedRule: AuditResult = {
 };
 
 const failedLrResult: LlmReviewResult = {
-  checkId: 'LR-002',
-  checkName: 'Defense Quality',
+  checkId: 'S-003',
+  checkName: 'Defense Effectiveness',
   severity: 'critical',
   score: 30,
   passed: false,
@@ -53,7 +53,7 @@ const failedLrResult: LlmReviewResult = {
   evidence: {},
 };
 
-describe('LR-005: Tailored Recommendations', () => {
+describe('Q-004: Tailored Fixes', () => {
   it('always passes (info severity)', async () => {
     const client = createMockClient();
     const result = await runTailoredRecommendations(
@@ -63,7 +63,7 @@ describe('LR-005: Tailored Recommendations', () => {
       [failedRule],
       ['No rate limiting'],
     );
-    expect(result.checkId).toBe('LR-005');
+    expect(result.checkId).toBe('Q-004');
     expect(result.passed).toBe(true);
     expect(result.severity).toBe('info');
   });
@@ -106,12 +106,12 @@ describe('extractTailoredFixes', () => {
     const parsed = {
       fixes: [
         {
-          related_check: 'SC-001',
+          related_check: 'S-002',
           instruction_text: 'Fix this',
           placement: 'prepend',
         },
         {
-          related_check: 'SC-002',
+          related_check: 'S-001',
           instruction_text: 'Another fix',
           placement: 'invalid',
         },
@@ -126,7 +126,7 @@ describe('extractTailoredFixes', () => {
   it('filters out fixes with empty instruction text', () => {
     const parsed = {
       fixes: [
-        { related_check: 'SC-001', instruction_text: '', placement: 'append' },
+        { related_check: 'S-002', instruction_text: '', placement: 'append' },
       ],
     };
     expect(extractTailoredFixes(parsed)).toHaveLength(0);

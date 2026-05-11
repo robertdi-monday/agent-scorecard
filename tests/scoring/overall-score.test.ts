@@ -106,15 +106,16 @@ describe('calculateOverallScore', () => {
     expect(overall.hasCriticalFailure).toBe(true);
   });
 
-  it('caps grade at C when vulnerable probe exists and score is high', () => {
+  it('block-on-critical forces F when a vulnerable probe exists, even at high score', () => {
     const results = [passingResult('critical'), passingResult('warning')];
     const simSummary = makeSimSummary(95, true);
     const overall = calculateOverallScore({
       configAuditResults: results,
       simulationSummary: simSummary,
     });
-    // Score would be 100*0.6 + 95*0.4 = 98 → normally A, but vulnerable caps at C
-    expect(overall.grade).toBe('C');
+    // Score would be 100*0.6 + 95*0.4 = 98 → normally A, but vulnerable probe → F (v2)
+    expect(overall.grade).toBe('F');
+    expect(overall.deploymentRecommendation).toBe('not-ready');
   });
 
   it('propagates critical failure from config audit', () => {

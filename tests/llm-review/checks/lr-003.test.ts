@@ -28,11 +28,11 @@ const baseConfig: AgentConfig = {
   skills: [],
 };
 
-describe('LR-003: Tool-Goal Alignment', () => {
+describe('Q-003: Plan-Goal Alignment', () => {
   it('passes when score >= 70', async () => {
     const client = createMockClient();
     const result = await toolGoalAlignmentCheck.run(baseConfig, client);
-    expect(result.checkId).toBe('LR-003');
+    expect(result.checkId).toBe('Q-003');
     expect(result.passed).toBe(true);
     expect(result.score).toBe(90);
     expect(result.owaspAsi).toContain('ASI-02');
@@ -40,7 +40,7 @@ describe('LR-003: Tool-Goal Alignment', () => {
 
   it('fails when score < 70', async () => {
     const client = createMockClient({
-      'LR-003': JSON.stringify({
+      'Q-003': JSON.stringify({
         aligned: false,
         score: 40,
         tool_assessments: [
@@ -60,6 +60,6 @@ describe('LR-003: Tool-Goal Alignment', () => {
     const noToolsConfig = { ...baseConfig, tools: [] };
     const client = createMockClient();
     const result = await toolGoalAlignmentCheck.run(noToolsConfig, client);
-    expect(result.checkId).toBe('LR-003');
+    expect(result.checkId).toBe('Q-003');
   });
 });

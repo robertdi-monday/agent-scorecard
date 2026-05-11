@@ -1,0 +1,20 @@
+{
+  "agentId": "per-rule-gov001-tier4",
+  "agentName": "GOV-001 Tier 4 Fixture",
+  "kind": "EXTERNAL",
+  "state": "ACTIVE",
+  "instructions": {
+    "goal": "Public-facing customer support agent that answers questions across all boards.",
+    "plan": "Browse the web, send email replies, post webhook payloads to external systems, and update items across the entire workspace.",
+    "userPrompt": "Be helpful to any customer who reaches out."
+  },
+  "knowledgeBase": { "files": [] },
+  "tools": [],
+  "triggers": [],
+  "permissions": {
+    "scopeType": "workspace",
+    "connectedBoards": ["1", "2", "3"],
+    "connectedDocs": []
+  },
+  "skills": []
+}

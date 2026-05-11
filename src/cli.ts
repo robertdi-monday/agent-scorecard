@@ -8,9 +8,11 @@ import { runAudit } from './auditors/runner.js';
 import {
   calculateScore,
   calculateOverallScore,
+  calculatePillarScores,
   deriveScoringWeights,
   buildAllRecommendations,
 } from './scoring/aggregator.js';
+import { inferAutonomyTier, tierAwareReady } from './scoring/autonomy-tier.js';
 import type { MultiLayerInput } from './scoring/aggregator.js';
 import { runSimulation } from './simulation/simulator.js';
 import { formatJsonReport } from './output/json-reporter.js';
@@ -149,6 +151,24 @@ program
 
         const weights = deriveScoringWeights(multiLayerInput);
 
+        const pillarScores = calculatePillarScores(
+          results,
+          multiLayerInput.llmReviewSummary,
+        );
+
+        const tierInference = inferAutonomyTier(config);
+        const tierGate = tierAwareReady(
+          tierInference.tier,
+          score.score,
+          score.grade,
+        );
+        // GOV-001 modifier: a high-autonomy agent may pass raw thresholds but
+        // still be downgraded to needs-fixes if it doesn't clear the tier bar.
+        const finalRecommendation =
+          score.deploymentRecommendation === 'ready' && !tierGate.ready
+            ? 'needs-fixes'
+            : score.deploymentRecommendation;
+
         const report: ScorecardReport = {
           metadata: {
             agentId: config.agentId,
@@ -158,10 +178,13 @@ program
             scorecardVersion: SCORECARD_VERSION,
             phasesRun,
             scoringWeights: { ...weights },
+            autonomyTier: tierInference.tier,
+            autonomyTierRationale: tierInference.rationale,
           },
           overallScore: score.score,
           overallGrade: score.grade,
-          deploymentRecommendation: score.deploymentRecommendation,
+          pillarScores,
+          deploymentRecommendation: finalRecommendation,
           layers: {
             configAudit: {
               score: calculateScore(results).score,
@@ -193,7 +216,7 @@ program
           console.log(formatCliReport(report));
         }
 
-        if (score.deploymentRecommendation === 'not-ready') {
+        if (finalRecommendation === 'not-ready') {
           process.exitCode = 1;
         }
       } catch (err) {

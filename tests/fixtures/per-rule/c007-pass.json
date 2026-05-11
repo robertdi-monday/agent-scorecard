@@ -1,0 +1,20 @@
+{
+  "agentId": "per-rule-c007-pass",
+  "agentName": "C-007 Pass Fixture",
+  "kind": "PERSONAL",
+  "state": "ACTIVE",
+  "instructions": {
+    "goal": "Screen Pell-grant applicants for Title IV eligibility against the 2026 Federal Grant Guidelines KB and produce a per-applicant report with PASS/FAIL per criterion. Out of scope: budgeting, procurement, payroll.",
+    "plan": "Read applicants. Compare to KB criteria. Emit per-criterion PASS/FAIL with rationale.",
+    "userPrompt": "Run the eligibility screen for the queue."
+  },
+  "knowledgeBase": { "files": [] },
+  "tools": [],
+  "triggers": [],
+  "permissions": {
+    "scopeType": "board",
+    "connectedBoards": ["1"],
+    "connectedDocs": []
+  },
+  "skills": []
+}

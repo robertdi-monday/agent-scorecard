@@ -19,7 +19,7 @@ import {
 import { summarizeConfigAuditLayer } from '../src/report/config-audit-summary.js';
 import {
   mapPublicAgentToConfig,
-  INSTRUCTION_ONLY_RULE_IDS,
+  instructionOnlyRuleIds,
 } from '../src/mcp/public-api-mapper.js';
 import type { AgentConfig } from '../src/config/types.js';
 
@@ -41,9 +41,10 @@ function runPipeline(config: AgentConfig, label: string) {
   console.log(`Has full config: ${hasFullConfig(config)}`);
 
   const allResults = runAudit(config);
+  const v1Ids = instructionOnlyRuleIds();
   const results = hasFullConfig(config)
     ? allResults
-    : allResults.filter((r) => INSTRUCTION_ONLY_RULE_IDS.has(r.ruleId));
+    : allResults.filter((r) => v1Ids.has(r.ruleId));
 
   console.log(
     `\nRules run: ${results.length} (of ${allResults.length} total)\n`,

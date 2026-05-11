@@ -1,0 +1,20 @@
+{
+  "agentId": "per-rule-r002-fail",
+  "agentName": "R-002 Fail Fixture",
+  "kind": "PERSONAL",
+  "state": "ACTIVE",
+  "instructions": {
+    "goal": "Process incoming applications each night.",
+    "plan": "Read every applicant in the queue. Score each. Update the status column. Keep going until the queue is empty.",
+    "userPrompt": "Process them all."
+  },
+  "knowledgeBase": { "files": [] },
+  "tools": [],
+  "triggers": [],
+  "permissions": {
+    "scopeType": "board",
+    "connectedBoards": ["1"],
+    "connectedDocs": []
+  },
+  "skills": []
+}

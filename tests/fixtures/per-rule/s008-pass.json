@@ -1,0 +1,20 @@
+{
+  "agentId": "per-rule-s008-pass",
+  "agentName": "S-008 Pass Fixture",
+  "kind": "PERSONAL",
+  "state": "ACTIVE",
+  "instructions": {
+    "goal": "Summarize project board status without ever fabricating data.",
+    "plan": "Read board items. Produce a markdown summary. Cite item IDs.",
+    "userPrompt": "Provide a daily project status summary for the team."
+  },
+  "knowledgeBase": { "files": [] },
+  "tools": [],
+  "triggers": [],
+  "permissions": {
+    "scopeType": "board",
+    "connectedBoards": ["1"],
+    "connectedDocs": []
+  },
+  "skills": []
+}

@@ -64,16 +64,24 @@ async function main() {
   console.log('Step 1: Fetching agent via monday MCP server...');
   const client = createMcpApiClient(token);
   const raw = await client.getAgent(agentId);
-  console.log(`  Agent: ${raw.profile.name} | Kind: ${raw.kind} | State: ${raw.state}`);
-  console.log(`  Instruction text: ${raw.goal.length + raw.plan.length + raw.user_prompt.length} chars\n`);
+  console.log(
+    `  Agent: ${raw.profile.name} | Kind: ${raw.kind} | State: ${raw.state}`,
+  );
+  console.log(
+    `  Instruction text: ${raw.goal.length + raw.plan.length + raw.user_prompt.length} chars\n`,
+  );
 
   // Step 2: Initialize scorecard MCP session
   console.log('Step 2: Initializing scorecard MCP session...');
-  const { sessionId } = await scorecardMcpCall('initialize', {
-    protocolVersion: '2024-11-05',
-    capabilities: {},
-    clientInfo: { name: 'e2e-test', version: '1.0.0' },
-  }, 1);
+  const { sessionId } = await scorecardMcpCall(
+    'initialize',
+    {
+      protocolVersion: '2024-11-05',
+      capabilities: {},
+      clientInfo: { name: 'e2e-test', version: '1.0.0' },
+    },
+    1,
+  );
   console.log(`  Session: ${sessionId}`);
 
   // Send initialized notification
@@ -86,15 +94,23 @@ async function main() {
   await fetch(mcpUrl, {
     method: 'POST',
     headers: notifyHeaders,
-    body: JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }),
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      method: 'notifications/initialized',
+    }),
   });
 
   // Step 3: Call audit_agent with the raw get_agent response
   console.log('\nStep 3: Calling audit_agent on scorecard MCP...');
-  const { data } = await scorecardMcpCall('tools/call', {
-    name: 'audit_agent',
-    arguments: { agentConfigJson: JSON.stringify(raw) },
-  }, 2, sessionId);
+  const { data } = await scorecardMcpCall(
+    'tools/call',
+    {
+      name: 'audit_agent',
+      arguments: { agentConfigJson: JSON.stringify(raw) },
+    },
+    2,
+    sessionId,
+  );
 
   const result = data as { content?: Array<{ type: string; text: string }> };
   const textContent = result.content?.find((c) => c.type === 'text');
@@ -107,19 +123,25 @@ async function main() {
 
   // Step 4: Display results
   console.log('\n=== Scorecard Report ===\n');
-  console.log(`Agent: ${report.metadata.agentName} (ID: ${report.metadata.agentId})`);
+  console.log(
+    `Agent: ${report.metadata.agentName} (ID: ${report.metadata.agentId})`,
+  );
   console.log(`Grade: ${report.overallGrade} (${report.overallScore}/100)`);
   console.log(`Deployment: ${report.deploymentRecommendation}`);
   console.log(`Phases: ${report.metadata.phasesRun.join(', ')}`);
   console.log(`Version: ${report.metadata.scorecardVersion}\n`);
 
   const ca = report.layers.configAudit;
-  console.log(`Config Audit: ${ca.passed} passed, ${ca.failed} failed, ${ca.warnings} warnings, ${ca.infoIssues} info`);
+  console.log(
+    `Config Audit: ${ca.passed} passed, ${ca.failed} failed, ${ca.warnings} warnings, ${ca.infoIssues} info`,
+  );
 
   console.log('\nDetailed results:');
   for (const r of ca.results) {
     const icon = r.passed ? '✓' : '✗';
-    console.log(`  ${icon} ${r.ruleId} [${r.severity}] ${r.passed ? 'PASS' : 'FAIL'}`);
+    console.log(
+      `  ${icon} ${r.ruleId} [${r.severity}] ${r.passed ? 'PASS' : 'FAIL'}`,
+    );
     if (!r.passed && r.message) {
       console.log(`    → ${r.message.substring(0, 120)}`);
     }

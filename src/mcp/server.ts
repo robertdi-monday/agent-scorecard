@@ -18,21 +18,24 @@ import { z } from 'zod';
 
 import { runAudit } from '../auditors/runner.js';
 import { SCORECARD_VERSION } from '../config/constants.js';
-import type { AgentConfig, AuditResult, ScorecardReport } from '../config/types.js';
+import type {
+  AgentConfig,
+  AuditResult,
+  ScorecardReport,
+} from '../config/types.js';
 import {
   buildAllRecommendations,
   calculateOverallScore,
+  calculatePillarScores,
   calculateScore,
   deriveScoringWeights,
 } from '../scoring/aggregator.js';
 import type { MultiLayerInput } from '../scoring/aggregator.js';
+import { inferAutonomyTier, tierAwareReady } from '../scoring/autonomy-tier.js';
 import { summarizeConfigAuditLayer } from '../report/config-audit-summary.js';
 import { runSimulation } from '../simulation/simulator.js';
 import { loadConfig } from '../config/loader.js';
-import {
-  mapPublicAgentToConfig,
-  INSTRUCTION_ONLY_RULE_IDS,
-} from './public-api-mapper.js';
+import { mapPublicAgentToConfig } from './public-api-mapper.js';
 
 const server = new McpServer({
   name: 'agent-scorecard',
@@ -78,7 +81,7 @@ server.registerTool(
         .boolean()
         .optional()
         .describe(
-          'Run LLM-powered semantic review checks (LR-001 through LR-005). ' +
+          'Run LLM-powered semantic review checks (Q-002, S-003, Q-003, Q-004). ' +
             'Requires ANTHROPIC_API_KEY env var or anthropicApiKey parameter.',
         ),
       includeSimulation: z
@@ -108,9 +111,10 @@ server.registerTool(
       const allResults = runAudit(config);
 
       // If config lacks tools/KB/permissions, filter to instruction-only rules
+      // (those with a `pillar` tag — i.e. v1-compatible rules).
       const results = hasFullConfig(config)
         ? allResults
-        : allResults.filter((r) => INSTRUCTION_ONLY_RULE_IDS.has(r.ruleId));
+        : allResults.filter((r) => r.pillar !== undefined);
 
       const layer = summarizeConfigAuditLayer(results);
       const phasesRun: string[] = ['config-audit'];
@@ -150,9 +154,8 @@ server.registerTool(
           };
         }
 
-        const { createAnthropicClient } = await import(
-          '../llm-review/llm-client.js'
-        );
+        const { createAnthropicClient } =
+          await import('../llm-review/llm-client.js');
         const { runLlmReview } = await import('../llm-review/reviewer.js');
 
         const llmClient = createAnthropicClient(apiKey);
@@ -187,6 +190,22 @@ server.registerTool(
 
       const weights = deriveScoringWeights(multiLayerInput);
 
+      const pillarScores = calculatePillarScores(
+        results,
+        multiLayerInput.llmReviewSummary,
+      );
+
+      const tierInference = inferAutonomyTier(config);
+      const tierGate = tierAwareReady(
+        tierInference.tier,
+        score.score,
+        score.grade,
+      );
+      const finalRecommendation =
+        score.deploymentRecommendation === 'ready' && !tierGate.ready
+          ? 'needs-fixes'
+          : score.deploymentRecommendation;
+
       const report: ScorecardReport = {
         metadata: {
           agentId: config.agentId,
@@ -195,10 +214,13 @@ server.registerTool(
           scorecardVersion: SCORECARD_VERSION,
           phasesRun,
           scoringWeights: { ...weights },
+          autonomyTier: tierInference.tier,
+          autonomyTierRationale: tierInference.rationale,
         },
         overallScore: score.score,
         overallGrade: score.grade,
-        deploymentRecommendation: score.deploymentRecommendation,
+        pillarScores,
+        deploymentRecommendation: finalRecommendation,
         layers: {
           configAudit: {
             score: calculateScore(results).score,

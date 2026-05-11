@@ -1,0 +1,20 @@
+{
+  "agentId": "per-rule-gov001-tier1",
+  "agentName": "GOV-001 Tier 1 Fixture",
+  "kind": "PERSONAL",
+  "state": "ACTIVE",
+  "instructions": {
+    "goal": "Look up status of items I own on the project board.",
+    "plan": "Read-only. Restricted to my personal items.",
+    "userPrompt": "Just give me a status overview."
+  },
+  "knowledgeBase": { "files": [] },
+  "tools": [],
+  "triggers": [],
+  "permissions": {
+    "scopeType": "board",
+    "connectedBoards": ["1"],
+    "connectedDocs": []
+  },
+  "skills": []
+}

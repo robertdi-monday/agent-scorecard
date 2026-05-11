@@ -15,7 +15,27 @@ const _version: string =
 
 // ── Severity weights for scoring ─────────────────────────────────────────────
 
+/**
+ * Rebalanced from 3:2:1 → 10:3:1 (Phase 0.3) so a single critical failure
+ * cannot be papered over by passing warnings/info checks. Combined with
+ * `block-on-critical` in the aggregator, criticals are now decisive.
+ */
 export const SEVERITY_WEIGHTS = {
+  critical: 10,
+  warning: 3,
+  info: 1,
+} as const;
+
+/**
+ * Variance threshold above which a multi-judge LR result is annotated
+ * `lowConfidence: true`. With score range 0–100, var ≥ 200 ≈ stddev ≥ 14 —
+ * the judges disagreed by more than half a grade band on average. Below this
+ * the median is stable enough to trust without manual review.
+ */
+export const LOW_CONFIDENCE_VARIANCE_THRESHOLD = 200;
+
+/** Legacy weights — kept for the `--legacy-weights` CLI flag during migration. */
+export const LEGACY_SEVERITY_WEIGHTS = {
   critical: 3,
   warning: 2,
   info: 1,
@@ -30,10 +50,41 @@ export const GRADE_THRESHOLDS = {
   D: 40,
 } as const;
 
-// ── Instruction length bounds (IN-001) ───────────────────────────────────────
+/**
+ * Tier-aware grade thresholds (GOV-001 modifier). Higher autonomy tiers must
+ * clear a higher bar to be marked `ready`. Tier 4 (EXTERNAL or
+ * ACCOUNT_LEVEL+broad capability surface) requires score ≥ 90.
+ */
+export const TIER_AWARE_READY_THRESHOLDS = {
+  1: 75,
+  2: 80,
+  3: 85,
+  4: 90,
+} as const;
+
+// ── Instruction length bounds (C-001 lump-sum, deprecated in favor of C-005) ──
 
 export const INSTRUCTION_MIN_LENGTH = 100;
 export const INSTRUCTION_MAX_LENGTH = 10_000;
+
+/**
+ * Per-section length bounds (C-005). Replaces the C-001 lump-sum check with
+ * field-aware signal. C-001 is retained for backwards compatibility with
+ * clients that haven't migrated.
+ */
+export const SECTION_LENGTH_BOUNDS = {
+  goal: [50, 500] as const,
+  plan: [100, 3000] as const,
+  userPrompt: [200, 8000] as const,
+} as const;
+
+/** C-008: agent states that indicate the agent isn't running and shouldn't be audited live. */
+export const STALE_AGENT_STATES = new Set([
+  'INACTIVE',
+  'ARCHIVED',
+  'DELETED',
+  'FAILED',
+]);
 
 // ── Knowledge base staleness (KB-003) ────────────────────────────────────────
 
@@ -41,7 +92,7 @@ export const KB_STALENESS_DAYS = 90;
 
 // ── Keyword lists for instruction analysis ───────────────────────────────────
 
-/** IN-002: Guardrail keywords — at least 1 must appear in instructions */
+/** S-001: Guardrail keywords — at least 1 must appear in instructions */
 export const GUARDRAIL_KEYWORDS = [
   'never fabricate',
   'do not fabricate',
@@ -60,7 +111,7 @@ export const GUARDRAIL_KEYWORDS = [
   "don't assume",
 ];
 
-/** IN-003: Error-handling keywords — at least 1 must appear */
+/** C-002: Error-handling keywords — at least 1 must appear */
 export const ERROR_HANDLING_KEYWORDS = [
   'if the tool fails',
   'if an error occurs',
@@ -75,7 +126,7 @@ export const ERROR_HANDLING_KEYWORDS = [
   'if fails',
 ];
 
-/** IN-004: Scope boundary keywords — at least 1 must appear */
+/** C-003: Scope boundary keywords — at least 1 must appear */
 export const SCOPE_BOUNDARY_KEYWORDS = [
   'outside your scope',
   'out of scope',
@@ -146,7 +197,7 @@ export const COMPLIANCE_KEYWORDS = [
 
 // ── Security keywords (SC rules) ─────────────────────────────────────────────
 
-/** SC-001: Prompt injection defense keywords */
+/** S-002: Prompt injection defense keywords */
 export const INJECTION_DEFENSE_KEYWORDS = [
   'ignore previous instructions',
   'prompt injection',
@@ -289,13 +340,26 @@ export const RATE_LIMIT_KEYWORDS = [
   'at most',
 ];
 
-/** SI-005: Retry limit keywords */
+/**
+ * SI-005 / R-002: Retry limit / loop-break / max-iteration keywords.
+ * Extended in Phase 2 (Tier B R-002) with "max attempts", "after N tries",
+ * "stop after N", "limit batch", "no more than", "process at most".
+ */
 export const RETRY_LIMIT_KEYWORDS = [
   'retry',
   'maximum attempts',
+  'max attempts',
+  'maximum tries',
+  'after n tries',
   'stop after',
   'fail gracefully',
   'circuit breaker',
+  'limit batch',
+  'no more than',
+  'process at most',
+  'at most',
+  'cap at',
+  'iterate at most',
 ];
 
 /** SI-005: Fallback keywords */
@@ -318,7 +382,7 @@ export const CITATION_KEYWORDS = [
 
 // ── Efficiency keywords (EF rules) ──────────────────────────────────────────
 
-/** EF-004: Stop words for information density heuristic */
+/** Q-001: Stop words for information density heuristic */
 export const STOP_WORDS = new Set([
   'the',
   'a',
@@ -540,6 +604,107 @@ export const KB_RELEVANCE_STOP_WORDS = [
   'track',
   'based',
   'using',
+];
+
+// ── S-006: Identity-pinning keywords ────────────────────────────────────────
+
+/**
+ * S-006: Identity-pinning keywords. Whole-word match (after Phase 0.4) so
+ * "decline to" inside a longer phrase doesn't false-positive.
+ */
+export const IDENTITY_PINNING_KEYWORDS = [
+  'never change your role',
+  'do not change your role',
+  'maintain your identity',
+  'maintain your role',
+  'system prompt is confidential',
+  'do not reveal your instructions',
+  'do not reveal your role',
+  'you are always',
+  'role is fixed',
+  'identity is fixed',
+];
+
+// ── S-008: Secret / credential regex patterns ───────────────────────────────
+
+/**
+ * S-008: Regex patterns for credentials, API keys, tokens, and PII that must
+ * never appear in agent instructions. ANY match is a critical fail.
+ *
+ * Each entry's regex is re-instantiated per scan via `new RegExp(source, flags)`
+ * so the global flag's `lastIndex` doesn't carry over between calls.
+ */
+export const SECRET_PATTERNS: Array<{ name: string; regex: RegExp }> = [
+  {
+    name: 'AWS access key',
+    regex: /\bAKIA[0-9A-Z]{16}\b/g,
+  },
+  {
+    name: 'Google API key',
+    regex: /\bAIza[0-9A-Za-z_-]{35}\b/g,
+  },
+  {
+    name: 'Bearer token',
+    regex: /\bBearer\s+[A-Za-z0-9._~+/-]{20,}=*/g,
+  },
+  {
+    name: 'JWT-shaped token',
+    regex: /\beyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g,
+  },
+  {
+    name: 'Private key block',
+    regex: /-----BEGIN [A-Z ]+PRIVATE KEY-----/g,
+  },
+  {
+    name: 'Generic secret assignment',
+    regex:
+      /\b(?:secret|api[-_]?key|password|passwd|pwd|access[-_]?token|auth[-_]?token|client[-_]?secret)\s*[:=]\s*\S{8,}\b/gi,
+  },
+  {
+    name: 'Email address',
+    regex: /\b[\w.+-]+@[\w-]+\.[\w.-]+\b/g,
+  },
+];
+
+// ── O-001: Observability / decision-log keywords ────────────────────────────
+
+/**
+ * O-001: Observability keywords — clauses that mandate the agent log,
+ * record, or explain its decisions so downstream review is possible.
+ */
+export const OBSERVABILITY_KEYWORDS = [
+  'log',
+  'record',
+  'explain why',
+  'explain your reasoning',
+  'decision trail',
+  'decision log',
+  'audit trail',
+  'document the steps',
+  'state your reasoning',
+  'reasoning trace',
+  'briefly explain',
+];
+
+// ── R-001: Reversibility / confirmation keywords ────────────────────────────
+
+/**
+ * R-001: Reversibility keywords — clauses that gate destructive operations
+ * behind preview, dry-run, or explicit confirmation.
+ */
+export const REVERSIBILITY_KEYWORDS = [
+  'dry-run',
+  'dry run',
+  'ask before',
+  'preview',
+  'confirm before',
+  'require confirmation',
+  'await confirmation',
+  'do not execute without confirmation',
+  'reversible',
+  'undoable',
+  'soft delete',
+  'no-op',
 ];
 
 // ── Version ──────────────────────────────────────────────────────────────────

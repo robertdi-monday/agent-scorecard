@@ -1,6 +1,6 @@
 {
   "name": "agent-scorecard",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "type": "module",
   "description": "Deterministic configuration audit for monday.com Agent Builder agents",
   "main": "./dist/index.js",
@@ -32,7 +32,9 @@
     "mcp:http": "tsx src/mcp/http-server.ts",
     "build:app": "vite build --config vite.config.app.ts",
     "validate:schema": "node scripts/validate-fixtures.mjs",
-    "verify": "npm run lint && npm run prettier:check && npm test && npm run validate:schema"
+    "gen:spec": "tsx scripts/gen-spec.ts",
+    "gen:spec:check": "tsx scripts/gen-spec.ts --check",
+    "verify": "npm run lint && npm run prettier:check && npm test && npm run validate:schema && npm run gen:spec:check"
   },
   "engines": {
     "node": ">=20"
@@ -41,7 +43,8 @@
     "@modelcontextprotocol/sdk": "^1.29.0",
     "chalk": "^5.4.1",
     "cli-table3": "^0.6.5",
-    "commander": "^13.1.0"
+    "commander": "^13.1.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^22.15.0",

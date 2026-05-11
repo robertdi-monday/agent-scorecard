@@ -46,7 +46,7 @@ const llmSummary: LlmReviewSummary = {
   failed: 1,
   results: [
     {
-      checkId: 'LR-001',
+      checkId: 'Q-002',
       checkName: 'Coherence',
       severity: 'warning',
       score: 70,
@@ -56,7 +56,7 @@ const llmSummary: LlmReviewSummary = {
       evidence: {},
     },
     {
-      checkId: 'LR-002',
+      checkId: 'S-003',
       checkName: 'Defense',
       severity: 'critical',
       score: 70,
@@ -122,12 +122,12 @@ describe('calculateOverallScore — three layers', () => {
     expect(result.score).toBe(100);
   });
 
-  it('treats failed LR-002 as critical failure', () => {
+  it('treats failed S-003 as critical failure', () => {
     const failedLlm: LlmReviewSummary = {
       ...llmSummary,
       results: [
         {
-          checkId: 'LR-002',
+          checkId: 'S-003',
           checkName: 'Defense',
           severity: 'critical',
           score: 40,

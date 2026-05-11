@@ -73,7 +73,9 @@ export function createMcpApiClient(token: string): MondayApiClient {
     const text = await res.text();
     const dataLine = text.split('\n').find((l) => l.startsWith('data: '));
     if (!dataLine) {
-      throw new Error(`Unexpected MCP response format: ${text.substring(0, 200)}`);
+      throw new Error(
+        `Unexpected MCP response format: ${text.substring(0, 200)}`,
+      );
     }
     const parsed = JSON.parse(dataLine.replace('data: ', ''));
     if (parsed.error) {
@@ -162,6 +164,3 @@ export function createMcpApiClient(token: string): MondayApiClient {
     },
   };
 }
-
-// Legacy alias for backward compatibility
-export const createPublicApiClient = createMcpApiClient;

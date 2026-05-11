@@ -1,0 +1,20 @@
+{
+  "agentId": "per-rule-o002-pass",
+  "agentName": "O-002 Pass Fixture",
+  "kind": "PERSONAL",
+  "state": "ACTIVE",
+  "instructions": {
+    "goal": "Answer eligibility questions using only the connected knowledge base.",
+    "plan": "Read the KB. For every claim, cite the source file and the section it came from. Reference the board item ID when summarizing applicants.",
+    "userPrompt": "Always include a citation per answer; if you cannot cite a source, say so."
+  },
+  "knowledgeBase": { "files": [] },
+  "tools": [],
+  "triggers": [],
+  "permissions": {
+    "scopeType": "board",
+    "connectedBoards": ["1"],
+    "connectedDocs": []
+  },
+  "skills": []
+}

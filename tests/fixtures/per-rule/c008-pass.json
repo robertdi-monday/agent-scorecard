@@ -1,0 +1,20 @@
+{
+  "agentId": "per-rule-c008-pass",
+  "agentName": "C-008 Pass Fixture",
+  "kind": "PERSONAL",
+  "state": "ACTIVE",
+  "instructions": {
+    "goal": "Read board items and produce a daily summary for the team channel.",
+    "plan": "Run on a schedule. Pull all items updated in the last 24h. Summarize.",
+    "userPrompt": "You are a daily summary agent."
+  },
+  "knowledgeBase": { "files": [] },
+  "tools": [],
+  "triggers": [],
+  "permissions": {
+    "scopeType": "board",
+    "connectedBoards": ["1"],
+    "connectedDocs": []
+  },
+  "skills": []
+}

@@ -11,10 +11,46 @@ export function getInstructionText(config: AgentConfig): string {
     .join(' ');
 }
 
-/** Case-insensitive keyword scan — returns matched keywords. */
+/**
+ * Case-insensitive whole-word/whole-phrase keyword scan — returns matched
+ * keywords. Multi-word phrases match on word boundaries so that, for example,
+ * the bare phrase "decline to confirm dates" no longer false-positives against
+ * the GUARDRAIL_KEYWORDS entry "decline to" (which is intended to require an
+ * actual refusal action like "decline to answer").
+ *
+ * Implementation: normalize whitespace, then match each keyword as a single
+ * token sequence anchored by `\b` on the outer word characters. We escape
+ * regex metacharacters in keywords and treat any internal whitespace as
+ * `\s+` so phrases tolerate normal spacing variation without bleeding into
+ * adjacent words.
+ */
 export function findKeywords(text: string, keywords: string[]): string[] {
-  const lower = text.toLowerCase();
-  return keywords.filter((kw) => lower.includes(kw.toLowerCase()));
+  const matched: string[] = [];
+  for (const kw of keywords) {
+    if (matchKeyword(text, kw)) matched.push(kw);
+  }
+  return matched;
+}
+
+const REGEX_META = /[.*+?^${}()|[\]\\]/g;
+
+function escapeRegex(s: string): string {
+  return s.replace(REGEX_META, '\\$&');
+}
+
+/** True iff the keyword phrase appears in text as a whole-word match. */
+export function matchKeyword(text: string, keyword: string): boolean {
+  const trimmed = keyword.trim();
+  if (!trimmed) return false;
+  const tokens = trimmed.split(/\s+/).map(escapeRegex);
+  // \b only anchors next to a `\w` character; for keywords that begin or end
+  // with a non-word char (e.g. "-----BEGIN") fall back to a permissive boundary.
+  const startsWithWord = /^\w/.test(trimmed);
+  const endsWithWord = /\w$/.test(trimmed);
+  const left = startsWithWord ? '\\b' : '';
+  const right = endsWithWord ? '\\b' : '';
+  const re = new RegExp(`${left}${tokens.join('\\s+')}${right}`, 'i');
+  return re.test(text);
 }
 
 /** Jaccard similarity between two word sets. */

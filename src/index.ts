@@ -6,6 +6,7 @@ export { runAudit, getRulesForVertical } from './auditors/runner.js';
 export {
   calculateScore,
   calculateOverallScore,
+  calculatePillarScores,
   deriveScoringWeights,
   buildRecommendations,
   buildAllRecommendations,
@@ -13,6 +14,8 @@ export {
   gradeRank,
   gradeToRecommendation,
 } from './scoring/aggregator.js';
+export { inferAutonomyTier, tierAwareReady } from './scoring/autonomy-tier.js';
+export type { AutonomyTierInference } from './scoring/autonomy-tier.js';
 export { runSimulation } from './simulation/simulator.js';
 export { summarizeConfigAuditLayer } from './report/config-audit-summary.js';
 export { summarizeSimulationLayer } from './report/simulation-summary.js';
@@ -36,9 +39,12 @@ export type {
   AuditContext,
   AuditRule,
   AuditResult,
+  AutonomyTier,
+  Pillar,
   Severity,
   Grade,
   DeploymentRecommendation,
+  PillarScore,
   ScorecardScore,
   ScorecardReport,
   Recommendation,

@@ -2,7 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { getRulesForVertical, runAudit } from '../../src/auditors/runner.js';
 import type { AgentConfig } from '../../src/config/types.js';
 
-/** Stable inventory — 24 universal + 4 SLED when vertical set */
+/**
+ * Stable inventory — 32 universal + 4 SLED when vertical set.
+ * Universal expanded from 24 → 32 in v2 with the addition of:
+ *   - Tier A: C-005, C-008, S-008 (GOV-001 is a scoring modifier, not a rule)
+ *   - Tier B: S-006, O-001, O-002, R-001, R-002
+ */
 const BASE_RULE_IDS = [
   'KB-001',
   'KB-002',
@@ -13,21 +18,29 @@ const BASE_RULE_IDS = [
   'TL-002',
   'TR-001',
   'TR-002',
-  'IN-001',
-  'IN-002',
-  'IN-003',
-  'IN-004',
-  'EF-001',
+  'C-001',
+  'C-002',
+  'C-003',
+  'C-004',
+  'C-005',
+  'C-008',
   'EF-002',
   'EF-003',
-  'EF-004',
+  'Q-001',
   'EF-005',
-  'SC-001',
+  'S-001',
+  'S-002',
+  'S-006',
+  'S-008',
   'SC-002',
   'SC-003',
   'SC-004',
   'SC-005',
   'SC-006',
+  'O-001',
+  'O-002',
+  'R-001',
+  'R-002',
 ].sort();
 
 const SLED_RULE_IDS = ['SLED-001', 'SLED-002', 'SLED-003', 'SLED-004'].sort();
@@ -54,9 +67,9 @@ const minimalAgent = (): AgentConfig => ({
 });
 
 describe('getRulesForVertical', () => {
-  it('returns 24 base rules with no vertical', () => {
+  it('returns 32 base rules with no vertical', () => {
     const rules = getRulesForVertical();
-    expect(rules).toHaveLength(24);
+    expect(rules).toHaveLength(32);
     const ids = rules.map((r) => r.id).sort();
     expect(ids).toEqual(BASE_RULE_IDS);
   });
@@ -74,7 +87,7 @@ describe('getRulesForVertical', () => {
 
   it('adds SLED pack for sled-grant', () => {
     const rules = getRulesForVertical('sled-grant');
-    expect(rules).toHaveLength(28);
+    expect(rules).toHaveLength(36);
     const ids = rules.map((r) => r.id).sort();
     expect(ids).toEqual([...BASE_RULE_IDS, ...SLED_RULE_IDS].sort());
   });
@@ -83,8 +96,8 @@ describe('getRulesForVertical', () => {
 describe('runAudit', () => {
   it('returns one result per applicable rule', () => {
     const cfg = minimalAgent();
-    expect(runAudit(cfg)).toHaveLength(24);
-    expect(runAudit(cfg, 'sled-grant')).toHaveLength(28);
+    expect(runAudit(cfg)).toHaveLength(32);
+    expect(runAudit(cfg, 'sled-grant')).toHaveLength(36);
   });
 
   it('passes audit context through to rules', () => {
@@ -119,6 +132,23 @@ describe('AuditRule contract', () => {
       expect(result.severity).toBe(rule.severity);
       expect(typeof result.passed).toBe('boolean');
       expect(result.message.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('runner annotates result with rule.pillar when present', () => {
+    const cfg = minimalAgent();
+    const results = runAudit(cfg);
+    const v1Results = results.filter((r) => r.pillar !== undefined);
+    // All instruction-text rules carry a pillar; full-mode rules do not.
+    expect(v1Results.length).toBeGreaterThan(0);
+    for (const r of v1Results) {
+      expect([
+        'Completeness',
+        'Safety',
+        'Quality',
+        'Observability',
+        'Reliability',
+      ]).toContain(r.pillar);
     }
   });
 });
