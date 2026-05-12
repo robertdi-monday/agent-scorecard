@@ -234,7 +234,9 @@ export function buildAgentPrompt(): string {
     if (detRules.length === 0 && llmChecks.length === 0) continue;
 
     const displayName = pillar === 'Safety' ? 'Trust' : pillar;
-    sections.push(`#### Pillar: ${displayName}\n\n_${PILLAR_DESCRIPTIONS[pillar]}_`);
+    sections.push(
+      `#### Pillar: ${displayName}\n\n_${PILLAR_DESCRIPTIONS[pillar]}_`,
+    );
 
     for (const rule of detRules) {
       if (rule.agentPromptSnippet) {

@@ -332,7 +332,7 @@ function createMcpServer(): McpServer {
     {
       title: 'List Agents',
       description:
-        'List all monday.com agents accessible to the server\'s API token holder. ' +
+        "List all monday.com agents accessible to the server's API token holder. " +
         'Use this to find an agent by name when the user does not know the numeric ID. ' +
         'Returns an array of agent summaries with id, name, kind, and state (up to 100). ' +
         'Agents owned by other users may not appear but can still be fetched by ID via get_agent.',

@@ -66,7 +66,9 @@ describe('buildAgentPrompt — content invariants', () => {
 
   it('includes the canonical scaffolding blocks', () => {
     expect(prompt).toContain('## IDENTITY AND SECURITY');
-    expect(prompt).toContain('### Step 1: Identify and Retrieve the Target Agent');
+    expect(prompt).toContain(
+      '### Step 1: Identify and Retrieve the Target Agent',
+    );
     expect(prompt).toContain('### Step 2: Run Pillar Checks');
     expect(prompt).toContain('### Step 3: Scoring');
     expect(prompt).toContain('### Step 4: Results delivery (chat-only)');
