@@ -34,6 +34,7 @@
     "validate:schema": "node scripts/validate-fixtures.mjs",
     "gen:spec": "tsx scripts/gen-spec.ts",
     "gen:spec:check": "tsx scripts/gen-spec.ts --check",
+    "provision:hanna": "tsx scripts/provision-hanna-test-agent.ts",
     "verify": "npm run lint && npm run prettier:check && npm test && npm run validate:schema && npm run gen:spec:check"
   },
   "engines": {

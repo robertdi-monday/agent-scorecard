@@ -113,6 +113,11 @@ function createMcpServer(): McpServer {
       includeSimulation,
       anthropicApiKey,
     }) => {
+      const auditStarted = Date.now();
+      const inputChars = agentConfigJson?.length ?? 0;
+      console.log(
+        `[audit_agent] start inputChars=${inputChars} llm=${includeLlmReview} sim=${includeSimulation}`,
+      );
       try {
         const config = parseAgentConfig(agentConfigJson);
         const allResults = runAudit(config);
@@ -239,20 +244,28 @@ function createMcpServer(): McpServer {
           ),
         };
 
+        const body = JSON.stringify(report, null, 2);
+        const elapsed = Date.now() - auditStarted;
+        console.log(
+          `[audit_agent] ok elapsedMs=${elapsed} outChars=${body.length} agent=${config.agentName || config.agentId}`,
+        );
         return {
           content: [
             {
               type: 'text' as const,
-              text: JSON.stringify(report, null, 2),
+              text: body,
             },
           ],
         };
       } catch (err) {
+        const elapsed = Date.now() - auditStarted;
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(`[audit_agent] error elapsedMs=${elapsed} ${msg}`);
         return {
           content: [
             {
               type: 'text' as const,
-              text: `Audit failed: ${err instanceof Error ? err.message : String(err)}`,
+              text: `Audit failed: ${msg}`,
             },
           ],
           isError: true,

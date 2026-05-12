@@ -42,14 +42,15 @@ describe('buildAgentPrompt — content invariants', () => {
   const prompt = buildAgentPrompt();
 
   it('includes a section header for every pillar', () => {
-    for (const pillar of [
-      'Completeness',
-      'Safety',
-      'Quality',
-      'Observability',
-      'Reliability',
-    ]) {
-      expect(prompt).toContain(`#### Pillar: ${pillar}`);
+    const pillarDisplayNames: Record<string, string> = {
+      Completeness: 'Completeness',
+      Safety: 'Trust',
+      Quality: 'Quality',
+      Observability: 'Observability',
+      Reliability: 'Reliability',
+    };
+    for (const [, displayName] of Object.entries(pillarDisplayNames)) {
+      expect(prompt).toContain(`#### Pillar: ${displayName}`);
     }
   });
 
@@ -68,7 +69,7 @@ describe('buildAgentPrompt — content invariants', () => {
     expect(prompt).toContain('### Step 1: Identify and Retrieve the Target Agent');
     expect(prompt).toContain('### Step 2: Run Pillar Checks');
     expect(prompt).toContain('### Step 3: Scoring');
-    expect(prompt).toContain('### Step 4: Board Output');
+    expect(prompt).toContain('### Step 4: Results delivery (chat-only)');
     expect(prompt).toContain('## ERROR HANDLING');
     expect(prompt).toContain('## OUTPUT BEHAVIOR');
     expect(prompt).toContain('Block-on-critical (v2)');
