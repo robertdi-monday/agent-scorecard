@@ -1,7 +1,7 @@
 import type { AgentConfig, AuditRule } from '../config/types.js';
 
 /**
- * TR-001 (critical, ASI-08): Self-trigger detection.
+ * TR-001 (critical): Self-trigger detection.
  * If a trigger fires on column_change and the agent's tools modify the same column,
  * this can cause infinite execution loops (documented 16.5M token pattern).
  */
@@ -85,7 +85,7 @@ const tr001: AuditRule = {
 };
 
 /**
- * TR-002 (warning, ASI-08): Trigger should match agent purpose.
+ * TR-002 (warning): Trigger should match agent purpose.
  * Heuristic: if trigger type doesn't appear related to the agent goal, warn.
  */
 const tr002: AuditRule = {

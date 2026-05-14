@@ -101,10 +101,11 @@ describe('formatCliReport', () => {
     expect(output).toContain('Recommendations');
   });
 
-  it('shows OWASP tags in output', () => {
+  it('does not surface internal risk-tag codes in CLI tables (JSON still carries them)', () => {
     const report = makeReport();
     const output = formatCliReport(report);
-    expect(output).toContain('ASI-03');
+    expect(output).toContain('PM-001: Least-privilege permissions');
+    expect(output).not.toMatch(/\[ASI-/);
   });
 
   it('handles report with no recommendations', () => {

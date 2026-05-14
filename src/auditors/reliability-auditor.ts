@@ -16,7 +16,7 @@ const r001: AuditRule = {
   category: 'Reliability',
   pillar: 'Reliability',
   owaspAsi: ['ASI-08'],
-  agentPromptSnippet: `**R-001 — Reversibility Posture (info, OWASP ASI-08)**
+  agentPromptSnippet: `**R-001 — Reversibility Posture (info)**
 Whole-word search for: ${REVERSIBILITY_KEYWORDS.map((k) => `"${k}"`).join(', ')}.
 - Zero matches: FAIL — agent will execute destructive operations without confirmation, dry-run, or ask-before-destructive gates.
 - One or more: PASS.`,
@@ -53,7 +53,7 @@ const r002: AuditRule = {
   category: 'Reliability',
   pillar: 'Reliability',
   owaspAsi: ['ASI-02'],
-  agentPromptSnippet: `**R-002 — Loop-Break / Max-Iteration Mandate (info, OWASP ASI-02 Resource Overload)**
+  agentPromptSnippet: `**R-002 — Loop-Break / Max-Iteration Mandate (info)**
 Whole-word search for: ${RETRY_LIMIT_KEYWORDS.map((k) => `"${k}"`).join(', ')}.
 - Zero matches: FAIL — agent has no explicit loop bound; runaway-loop risk.
 - One or more: PASS.`,

@@ -23,7 +23,7 @@ describe('PM-001: Least-privilege permissions', () => {
     expect(result.severity).toBe('critical');
   });
 
-  it('includes OWASP ASI-03 tag', () => {
+  it('includes privilege-risk tag (ASI-03) on metadata', () => {
     const result = pm001.check(badAgent as unknown as AgentConfig);
     expect(result.owaspAsi).toContain('ASI-03');
   });

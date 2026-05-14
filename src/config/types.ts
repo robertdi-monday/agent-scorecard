@@ -75,6 +75,7 @@ export interface AuditRule {
   /** Set on v1-feasible (instruction-only) rules; absent on full-mode-only rules. */
   pillar?: Pillar;
   vertical?: string;
+  /** Optional compact internal risk-tag codes for JSON exports — not shown in CLI tables or the embedded app UI. */
   owaspAsi?: string[];
   /**
    * Markdown snippet describing how the Scorecard Agent should perform this
@@ -95,6 +96,7 @@ export interface AuditResult {
   message: string;
   recommendation?: string;
   evidence?: Record<string, unknown>;
+  /** Optional compact internal risk-tag codes for JSON exports — not shown in CLI tables or the embedded app UI. */
   owaspAsi?: string[];
 }
 
@@ -145,6 +147,7 @@ export interface LlmReviewResultEntry {
   recommendation?: string;
   rawResponse: Record<string, unknown>;
   evidence: Record<string, unknown>;
+  /** Optional compact internal risk-tag codes for JSON exports — not shown in CLI tables or the embedded app UI. */
   owaspAsi?: string[];
   /**
    * Multi-judge confidence annotations (P2-F). Populated by the reviewer for
@@ -229,5 +232,6 @@ export interface Recommendation {
   description: string;
   howToFix: string;
   relatedCheckIds: string[];
+  /** Optional compact internal risk-tag codes for JSON exports — not shown in CLI tables or the embedded app UI. */
   owaspAsi?: string[];
 }

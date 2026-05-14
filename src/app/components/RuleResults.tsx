@@ -120,11 +120,6 @@ function RuleRow({ result }: { result: AuditResult }) {
         >
           {result.severity}
         </span>
-        {result.owaspAsi && result.owaspAsi.length > 0 && (
-          <span style={{ fontSize: 11, color: '#999' }}>
-            [{result.owaspAsi.join(', ')}]
-          </span>
-        )}
       </div>
       <div style={{ color: '#555', marginTop: 4 }}>{result.message}</div>
       {expanded && (

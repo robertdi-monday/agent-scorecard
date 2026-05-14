@@ -8,8 +8,8 @@
  * monday's `user_prompt` field cap and break provisioning silently in CI.
  *
  * These tests pin:
- *   1. A hard upper bound (25 000 chars / ~7 500 tokens) — well below monday's
- *      30 000-char field cap, with headroom for ~3 more rules.
+ *   1. A hard upper bound (29 000 chars / ~8 700 tokens) — well below monday's
+ *      30 000-char field cap, with headroom for focused-output templates.
  *   2. A reasonable lower bound — guards against accidentally rebuilding from
  *      an empty rule registry (e.g. tree-shaking dropping every check).
  *   3. The exported AGENT_USER_PROMPT is byte-identical to a fresh
@@ -18,15 +18,18 @@
  *   5. The header / scoring / board-output / error-handling blocks are present.
  */
 import { describe, it, expect } from 'vitest';
-import { buildAgentPrompt } from '../../src/agent-builder/build-agent-prompt.js';
+import {
+  buildAgentPrompt,
+  INCLUDE_DEMO_NARRATIVE_SCOPE,
+} from '../../src/agent-builder/build-agent-prompt.js';
 import { AGENT_USER_PROMPT } from '../../src/agent-builder/agent-prompt.js';
 import { getRulesForVertical } from '../../src/auditors/runner.js';
 
 describe('buildAgentPrompt — size regression', () => {
   const prompt = buildAgentPrompt();
 
-  it('stays under 25 000 chars (monday user_prompt soft ceiling, ~7.5k tokens)', () => {
-    expect(prompt.length).toBeLessThanOrEqual(25_000);
+  it('stays under 29 000 chars (monday user_prompt soft ceiling, ~8.7k tokens)', () => {
+    expect(prompt.length).toBeLessThanOrEqual(29_000);
   });
 
   it('is at least 10 000 chars — guards against an empty/broken rule registry', () => {
@@ -75,6 +78,18 @@ describe('buildAgentPrompt — content invariants', () => {
     expect(prompt).toContain('## ERROR HANDLING');
     expect(prompt).toContain('## OUTPUT BEHAVIOR');
     expect(prompt).toContain('Block-on-critical (v2)');
+  });
+
+  it('includes focused narrative OUTPUT BEHAVIOR when INCLUDE_DEMO_NARRATIVE_SCOPE is true', () => {
+    if (INCLUDE_DEMO_NARRATIVE_SCOPE) {
+      expect(prompt).toContain(
+        '## OUTPUT BEHAVIOR (focused narrative — token efficiency & data integrity)',
+      );
+    } else {
+      expect(prompt).not.toContain(
+        '## OUTPUT BEHAVIOR (focused narrative — token efficiency & data integrity)',
+      );
+    }
   });
 
   it('includes the Q-004 tailored-fixes snippet (always-pass info check)', () => {

@@ -265,7 +265,7 @@ describe('QA — Rule metadata (36 rules with sled-grant)', () => {
     }
   });
 
-  it('PM-001 carries OWASP ASI-03 when failed on bad fixture', () => {
+  it('PM-001 carries privilege-risk tag (ASI-03) on metadata when failed on bad fixture', () => {
     const { results } = buildReport('bad-agent.json', 'sled-grant');
     const pm = results.find((x) => x.ruleId === 'PM-001');
     expect(pm?.passed).toBe(false);

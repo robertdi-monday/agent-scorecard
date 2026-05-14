@@ -13,8 +13,14 @@ import {
   AGENT_ROLE,
   AGENT_ROLE_DESCRIPTION,
   buildAgentPrompt,
+  INCLUDE_DEMO_NARRATIVE_SCOPE,
 } from './build-agent-prompt.js';
 
 export const AGENT_USER_PROMPT: string = buildAgentPrompt();
 
-export { AGENT_NAME, AGENT_ROLE, AGENT_ROLE_DESCRIPTION };
+export {
+  AGENT_NAME,
+  AGENT_ROLE,
+  AGENT_ROLE_DESCRIPTION,
+  INCLUDE_DEMO_NARRATIVE_SCOPE,
+};

@@ -111,12 +111,7 @@ function formatResultsTable(results: AuditResult[]): string {
         : chalk.yellow('⚠️');
 
     const severityStr = formatSeverity(result.severity);
-    const owaspTag =
-      result.owaspAsi && result.owaspAsi.length > 0
-        ? chalk.dim(` [${result.owaspAsi.join(', ')}]`)
-        : '';
-
-    const ruleName = `${result.ruleId}: ${result.ruleName}${owaspTag}`;
+    const ruleName = `${result.ruleId}: ${result.ruleName}`;
 
     table.push([icon, ruleName, severityStr, result.message]);
   }
@@ -236,13 +231,8 @@ function formatRecommendations(recommendations: Recommendation[]): string {
 
   for (const rec of recommendations) {
     const priorityStr = formatPriority(rec.priority);
-    const owaspTag =
-      rec.owaspAsi && rec.owaspAsi.length > 0
-        ? chalk.dim(` [${rec.owaspAsi.join(', ')}]`)
-        : '';
-
     lines.push('');
-    lines.push(`  ${priorityStr} ${chalk.bold(rec.title)}${owaspTag}`);
+    lines.push(`  ${priorityStr} ${chalk.bold(rec.title)}`);
     lines.push(`     ${rec.description}`);
     lines.push(`     ${chalk.cyan('Fix:')} ${rec.howToFix}`);
   }

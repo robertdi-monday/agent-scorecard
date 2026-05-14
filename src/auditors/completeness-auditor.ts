@@ -108,7 +108,7 @@ const c003: AuditRule = {
   category: 'Completeness',
   pillar: 'Completeness',
   owaspAsi: ['ASI-01'],
-  agentPromptSnippet: `**C-003 — Scope Boundary Definition (warning, OWASP ASI-01)**
+  agentPromptSnippet: `**C-003 — Scope Boundary Definition (warning)**
 Search for at least ONE of: ${SCOPE_BOUNDARY_KEYWORDS.map((k) => `"${k}"`).join(', ')}.
 - Zero matches: FAIL.
 - One or more: PASS.`,

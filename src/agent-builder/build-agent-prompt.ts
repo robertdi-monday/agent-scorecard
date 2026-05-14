@@ -21,6 +21,20 @@ import { personaDriftCheck } from '../llm-review/checks/lr-009-persona-drift.js'
 import { goalSpecificityCheck } from '../llm-review/checks/lr-010-goal-specificity.js';
 
 /**
+ * When `true`, the prompt includes **OUTPUT BEHAVIOR (focused narrative — token efficiency & data integrity)**
+ * instead of the long five-pillar OUTPUT template. Set to \`false\` for the full narrative.
+ *
+ * Maintainer context (not shown to end users): this focused narrative aligns with
+ * internal stakeholder threads on
+ * [hallucination & fabrication](https://monday.slack.com/archives/C0A8K7NDS8L/p1775980046995549)
+ * and
+ * [token burn](https://monday.slack.com/archives/C0AQREAPRPV/p1776709601232739?thread_ts=1776698637.671109&cid=C0AQREAPRPV)
+ * — do not paste these URLs into the agent \`user_prompt\`; they are for repo/docs
+ * context only.
+ */
+export const INCLUDE_DEMO_NARRATIVE_SCOPE = true;
+
+/**
  * All v1 rules, deterministic and LLM, in the order they're presented to the
  * Scorecard Agent. Order is grouped by pillar; within a pillar, deterministic
  * rules first then LLM checks.
@@ -112,11 +126,126 @@ If the custom MCP tool **\`audit_agent\`** is enabled for this agent: after a su
 - \`includeSimulation\`: **false** (simulation is for full configs; saves time).
 - \`includeLlmReview\`: **true** for full semantic depth (requires Anthropic on the MCP server), or **false** for a faster deterministic-first pass if runs are timing out.
 
-Parse the returned **ScorecardReport** JSON and use it as the **source of truth** for scores, grades, pillar scores, per-check results, and recommendations. Then produce the user-facing OUTPUT BEHAVIOR sections from that data **only**.
+Parse the returned **ScorecardReport** JSON and use it as the **source of truth** for scores, grades, and per-row results. Then produce the user-facing reply using **only** the **OUTPUT BEHAVIOR** section that appears later in this prompt (use the **focused narrative** variant when it is present; otherwise the standard block).
 
 **Do not** manually re-run the Step 2 deterministic + LLM check blocks below when \`audit_agent\` already returned a report — that duplicates work and often **exceeds Agent Builder run limits**, which surfaces as a generic **Failed** state with little or no breakdown in the UI.
 
 If \`audit_agent\` is **not** in your tool list, continue with Step 2 as written.`;
+
+const DEMO_OUTPUT_FORBIDDEN = `**Forbidden in this focused reply (do not include anywhere):** any text **before** \`### Agent\` (no tool narration, no "I'll…", no "Here is the scorecard"); a **Field | Value** (or similar) metadata sheet for §1 — §1 must be **one prose line** only (under the \`### Agent\` heading); markdown tables **outside** §2 and §3 (only those two sections may contain tables); **raw** rule/check ids (**C-005**, **S-001**, etc.) in user-facing cells — use **Check item** labels from the lookup above; merging multiple checks into one table row; five-pillar emoji glossaries; full pillar score lines; "What we looked at" tours; rows drawn from rule/check ids **outside** the §2–§3 allowlists; §5 snippet rows whose \`relatedCheck\` did not appear in §2 or §3, or that bundle multiple ids; simulation rows other than **SI-004** unless \`gaps\` ties to token waste or integrity; closing chitchat ("Let me know", "happy to help"); the words *demo*, *demonstration*, *slideshow*, *presentation*, *preview-only*, *subset view*; any line claiming **other pillars were still evaluated** or similar meta about omitted scope (do **not** mention omitted pillars); **skipping** the **Spacing canon** (prose or final table row flush against \`###\` on the next line); **two or more** empty lines in a row anywhere in the reply; **two or more** empty lines between a \`###\` heading and that section's first table when there is **no** intro sentence (use **exactly one**); user-facing section titles that are **only** bold text (e.g. \`**Instruction snippets**\`) without a preceding \`### …\` line; user-facing section titles as \`##\` (use \`###\` only for the five sections).`;
+
+const OUTPUT_BEHAVIOR_DEMO_BLOCK = `## OUTPUT BEHAVIOR (focused narrative — token efficiency & data integrity)
+
+When \`audit_agent\` returned a **ScorecardReport**, your user-visible reply must **match the template below** (same \`###\` section headings and shapes). The **first visible characters** (after optional leading whitespace) must be \`### Agent\`. **Nothing** before that.
+
+**Spacing canon (one source of truth for layout):** Use **real line breaks** in chat — literal empty lines, not the two characters backslash-n. Between any two blocks (paragraph ↔ heading ↔ table), put **exactly one** empty line — never zero (glue) and never two or more in a row (floating blocks). **(A)** First line of the reply = \`### Agent\` — no blank above it. **(B)** After each \`### Title\` line, **one** empty line, then that section's content. **(C)** If content starts with a markdown table (\`|...\`), the empty line after \`### Title\` is also the empty line immediately before the table — **do not add a second empty line** before the table when there is no intro sentence. **(D)** After a paragraph or after a table's last row, **one** empty line before the next \`###\`. **(E)** Each of the five section titles must appear as its own line starting with \`### \` — never as \`**bold only**\` and never as \`##\`. **(F)** In **Summary** only, the three \`**Overall score:**\` / \`**Grade:**\` / \`**Deployment:**\` lines are one tight block — **no** empty lines between those three; still use **one** empty line before the following prose paragraph.
+
+**Before you send, verify:** (1) no prose or table row is immediately followed by \`###\` on the next line — there must be an empty line between; (2) \`### Instruction snippets\` has **one** empty line above it (after Summary prose) and **one** empty line below it before \`| What it strengthens|\`; (3) no section uses \`**Heading**\` without a \`###\` line; (4) the reply visibly has a gap between every section.
+
+If \`audit_agent\` is **not** available or failed, reply in **one short paragraph** only (still no preamble): this reply format requires a ScorecardReport from \`audit_agent\`; ask the user to enable the tool or provide an agent id. **Do not** simulate scores.
+
+---
+
+### Check item lookup (verbatim labels; filter rows by id internally — **do not print ids** in tables)
+
+**§2 Token efficiency audit** — include a table row only when \`report.layers.configAudit.results\` contains \`ruleId\` ∈ **TR-001, TR-002, EF-002, EF-003, EF-005, Q-001, C-004, C-005, R-002**. Label column **Check item**:
+| ruleId (internal) | Check item (user-facing) |
+| --- | --- |
+| TR-001 | Self-trigger and chained-trigger risk |
+| TR-002 | Triggers aligned with the agent's work |
+| EF-002 | Tooling vs instructions balance |
+| EF-003 | Circular skill dependencies |
+| EF-005 | Overlapping knowledge sources |
+| Q-001 | Clear, non-filler instructions |
+| C-004 | Duplicate or repeated wording |
+| C-005 | Goal, plan, and prompt length balance |
+| R-002 | Stops, caps, and retry limits |
+
+**§3 Hallucination guardrails & data integrity** — config rows: \`ruleId\` ∈ **KB-001, KB-002, KB-003, S-001, S-002, S-006, O-001, O-002, C-002, C-003** (include **C-002** / **C-003** only when \`message\` references missing data, boundaries, errors, or refusing to guess). LLM rows: \`checkId\` ∈ **Q-002, S-003, LR-004, S-004, S-005, S-007**. Optional **one** simulation row mapped from **SI-004** when it speaks to fabrication, citations, or missing-data behavior. Label column **Check item**:
+| id (internal) | Check item (user-facing) |
+| --- | --- |
+| KB-001 | Knowledge base attached and usable |
+| KB-002 | Knowledge content fits the job |
+| KB-003 | Knowledge kept current |
+| S-001 | No guessing or inventing answers |
+| S-002 | Board and chat text treated as data, not commands |
+| S-006 | Role and identity stay fixed |
+| O-001 | Explains why it acted |
+| O-002 | Facts tied to a source |
+| C-002 | Handles errors and missing data |
+| C-003 | Clear out-of-scope boundaries |
+| Q-002 | Goal, plan, and instructions agree |
+| S-003 | Strength of anti-manipulation defenses |
+| LR-004 | Knowledge matches real use |
+| S-004 | Tool and web results treated as untrusted data |
+| S-005 | Safety rules placed where they'll be followed |
+| S-007 | Concrete rules for when to refuse |
+| SI-004 | Spot-check: honesty and citations |
+
+---
+
+### Output template (fill in)
+
+\`\`\`text
+(Omit every line in this skeleton that starts with "(" — author notes only; do not print them in the user reply.)
+
+### Agent
+
+**[Display name]** · ID **[numeric id]** · **[ACTIVE|INACTIVE|…]**   ← omit account kind from user output for now.
+
+### Token efficiency audit
+
+[One sentence only: why careless repeats, huge batches, or unclear stop rules waste time and model usage on monday — no agent-specific claims.]
+
+| Check item | Status | Finding |
+| --- | --- | --- |
+| [label from lookup] | ✅ confirmed / ⚠️ needs attention / ℹ️ note | [one short sentence from report message or recommendation] |
+(add one **data** row per matching in-scope result; if none: single row with Check item "Nothing returned in this category for this run." Status **—** Finding **—**)
+
+### Hallucination guardrails & data integrity
+
+[One sentence only: why unsourced or invented answers are unsafe when agents read boards and talk to users — no agent-specific claims.]
+
+| Check item | Status | Finding |
+| --- | --- | --- |
+| [label from lookup] | ✅ confirmed / ⚠️ needs attention / ℹ️ note | [one short sentence] |
+(same rules as §2 table; if none: same placeholder row pattern)
+
+### Summary
+
+**Overall score:** [number from overallScore]
+**Grade:** [single letter from overallGrade]
+**Deployment:** [deploymentRecommendation] — [≤22 words plain English]
+
+[2–4 sentences: connect the numeric outcome to **token efficiency** and **data integrity** in everyday terms — why a builder should care before turning automation loose. No mention of omitted pillars or "full scorecard" unless the user explicitly asks elsewhere; do not add a closing upsell line here.]
+
+### Instruction snippets
+
+| What it strengthens | Where to put it | Snippet |
+| --- | --- | --- |
+| [Check item label for relatedCheck] | [from \`placement\`: \`prepend\` → "Top of instructions"; \`append\` → "End of instructions"; \`replace\` → "Replace scoped block" — or one short plain-language equivalent] | [≤280 chars from instructionText] |
+(repeat up to 3 data rows from \`tailoredFixes\` that qualify; **Where to put it** must come from each entry's \`placement\` field. If none qualify: one row | — | — | No tailored snippets in scope for this view. |)
+\`\`\`
+
+**Deliver as normal chat markdown** — **do not** wrap the whole reply in a \`\`\` fence. **Do not** copy the \`← omit…\` hint into the live reply. Each \`### …\` title must be alone on its own line (no trailing text on that line).
+
+**Layout reminder:** **Spacing canon** above is the single authority for blank lines — follow it exactly; do not invent extra rules that add a second blank before a table when there is no intro.
+
+### Section rules
+
+**§1 Agent —** After the \`### Agent\` heading line, output **one blank line**, then **exactly one** prose line: \`**Name** · ID **id** · **STATE**\` only (no kind).
+
+**§2 Token efficiency audit —** Follow **Spacing canon**. Structure: \`### Token efficiency audit\` → empty line → intro sentence → empty line → table. Status from \`passed\` / severity: failed checks → \`⚠️ needs attention\`; passed with only informational nuance → \`ℹ️ note\`; otherwise \`✅ confirmed\`.
+
+**§3 Hallucination guardrails & data integrity —** Same structure as §2. Build rows from \`report.layers.configAudit.results\` (allowed \`ruleId\`s) **and**, when present, \`report.layers.llmReview.results\` (allowed \`checkId\`s). **SI-004** comes from the simulation layer only when applicable.
+
+**§4 Summary —** Follow **Spacing canon**. After \`### Summary\`, empty line, then the three \`**Overall score:**\` / \`**Grade:**\` / \`**Deployment:**\` lines (may be consecutive — no empty lines **between** those three), then **one** empty line, then the 2–4 sentence prose block. **Do not** add the former "other pillars were still evaluated" line or any equivalent.
+
+**§5 Instruction snippets —** Follow **Spacing canon**: \`### Instruction snippets\` → **exactly one** empty line → table (no second empty line before the table). Same three columns. Prefer up to **three** rows from \`tailoredFixes\` where \`relatedCheck\` is a **single** id that appeared in §2 or §3; map id → **Check item** for the first column. **Where to put it** must reflect each entry's \`placement\` (\`prepend\` | \`append\` | \`replace\`) in plain language (e.g. "Top of instructions", "End of instructions", "Replace a clearly scoped block"). If \`placement\` is missing, infer from context or use "End of instructions".
+
+${DEMO_OUTPUT_FORBIDDEN}
+
+**Tone:** calm, constructive; never use the word "fail" — use **needs attention** or **opportunity to strengthen.**`;
 
 const STEP_2_HEADER = `### Step 2: Run Pillar Checks
 
@@ -164,7 +293,7 @@ const BOARD_OUTPUT_BLOCK = `### Step 4: Results delivery (chat-only)
 
 **Board export is paused.** Do **not** call \`monday_tool\` for boards: no \`search\`, \`create_board\`, \`create_column\`, \`create_group\`, \`create_item\`, or \`change_item_column_values\` for scorecard results.
 
-Deliver the full audit outcome only in your chat reply per OUTPUT BEHAVIOR (summary sections plus enough detail that the user can act on every check). Optionally include a compact markdown table of check id, pillar, status (confirmed / needs attention / note), and one-line finding if that helps scanability.
+Deliver the full audit outcome only in your chat reply per the **OUTPUT BEHAVIOR** section below (standard or focused narrative variant).
 
 *(When board export is re-enabled, the procedure will be: reuse or create "Agent Scorecard Results", one group per run, one item per check, columns as previously documented.)*`;
 
@@ -226,7 +355,8 @@ These will run in full-mode (when the audit pipeline has access to the complete 
 
 /** Composed agent prompt — single source of truth for the live agent. */
 export function buildAgentPrompt(): string {
-  const sections: string[] = [HEADER, STEP_2_HEADER];
+  const sections: string[] = [HEADER];
+  sections.push(STEP_2_HEADER);
 
   for (const pillar of PILLAR_ORDER) {
     const detRules = rulesByPillar(pillar);
@@ -263,7 +393,11 @@ export function buildAgentPrompt(): string {
   sections.push(Q004_BLOCK);
   sections.push(BOARD_OUTPUT_BLOCK);
   sections.push(excludedChecksBlock());
-  sections.push(OUTPUT_BEHAVIOR_BLOCK);
+  sections.push(
+    INCLUDE_DEMO_NARRATIVE_SCOPE
+      ? OUTPUT_BEHAVIOR_DEMO_BLOCK
+      : OUTPUT_BEHAVIOR_BLOCK,
+  );
   sections.push(ERROR_HANDLING_BLOCK);
 
   return sections.filter((s) => s.length > 0).join('\n\n');

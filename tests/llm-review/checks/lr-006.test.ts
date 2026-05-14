@@ -34,7 +34,7 @@ describe('S-004: Tool-Output Trust Marker (LR-006)', () => {
     expect(toolOutputTrustCheck.agentPromptSnippet).toContain('S-004');
   });
 
-  it('carries OWASP ASI-06 (Memory & Context Poisoning)', () => {
+  it('carries tool-output poisoning risk tag on metadata (ASI-06)', () => {
     expect(toolOutputTrustCheck.owaspAsi).toContain('ASI-06');
   });
 

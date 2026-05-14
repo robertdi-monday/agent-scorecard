@@ -21,7 +21,7 @@
 ### Deliverables
 
 - Scorecard Agent created in Agent Builder with full instruction set
-- Results board with columns: status, score, severity, category, finding, fix, OWASP, agent name/kind, grade
+- Results board with columns: status, score, severity, category, finding, fix, risk tags, agent name/kind, grade
 - One group per audit run, one item per finding, summary item with overall grade
 - Severity-weighted scoring with critical failure cap (grade capped at C)
 

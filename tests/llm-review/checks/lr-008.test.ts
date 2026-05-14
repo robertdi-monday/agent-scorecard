@@ -26,7 +26,7 @@ describe('S-007: Refusal Triggers Concrete (LR-008)', () => {
     expect(refusalConcretenessCheck.agentPromptSnippet).toContain('S-007');
   });
 
-  it('warning severity, ASI-01', () => {
+  it('warning severity with injection-theme risk tag on metadata', () => {
     expect(refusalConcretenessCheck.severity).toBe('warning');
     expect(refusalConcretenessCheck.owaspAsi).toContain('ASI-01');
   });

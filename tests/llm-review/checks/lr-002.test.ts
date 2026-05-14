@@ -37,7 +37,7 @@ describe('S-003: Defense Effectiveness', () => {
     expect(defenseQualityCheck.severity).toBe('critical');
   });
 
-  it('has OWASP ASI-01 tag', () => {
+  it('has internal risk-tag metadata (ASI-01)', () => {
     expect(defenseQualityCheck.owaspAsi).toContain('ASI-01');
   });
 

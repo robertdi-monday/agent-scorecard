@@ -67,11 +67,6 @@ function RecCard({ rec }: { rec: Recommendation }) {
           {rec.priority}
         </span>
         <span style={{ fontWeight: 600, fontSize: 13 }}>{rec.title}</span>
-        {rec.owaspAsi && rec.owaspAsi.length > 0 && (
-          <span style={{ fontSize: 11, color: '#999' }}>
-            [{rec.owaspAsi.join(', ')}]
-          </span>
-        )}
       </div>
       <div style={{ fontSize: 12, color: '#555', marginBottom: 6 }}>
         {rec.description}

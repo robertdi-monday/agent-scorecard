@@ -7,7 +7,7 @@ const SCOPE_RANK: Record<string, number> = {
 };
 
 /**
- * PM-001 (critical, ASI-03): Workspace-wide permissions when narrower scope would work.
+ * PM-001 (critical): Workspace-wide permissions when narrower scope would work.
  */
 const pm001: AuditRule = {
   id: 'PM-001',
@@ -41,7 +41,7 @@ const pm001: AuditRule = {
 };
 
 /**
- * PM-002 (warning, ASI-03): Child agent permissions should not exceed parent.
+ * PM-002 (warning): Child agent permissions should not exceed parent.
  * When parentAgentId is set but no parent config is provided, returns info-level pass.
  * When parent config is provided via AuditContext, performs real scope comparison.
  */

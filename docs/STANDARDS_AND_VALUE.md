@@ -2,6 +2,8 @@
 
 **Audience:** Leadership and stakeholders — including readers who are not security or procurement specialists (examples below spell out “what this looks like” in plain situations).
 
+**Note:** The **Scorecard Agent user prompt** in Agent Builder uses **plain-language** check titles and findings so builders and execs are not asked to parse security-framework acronyms in chat. This document still names **OWASP**, **NIST**, and related programs where they help **procurement, audit, and security** readers map results to questionnaires; JSON exports may include compact internal risk-tag codes for the same purpose.
+
 **Date:** 2026-05-10
 
 **Release:** v2.0.0

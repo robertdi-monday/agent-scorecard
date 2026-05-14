@@ -210,7 +210,7 @@ The agent's instructions tell it to create the board automatically on first run.
 | Pillar | Text | Completeness / Safety / Quality / Observability / Reliability |
 | Finding | Long Text | What was found |
 | Fix | Long Text | How to fix it |
-| OWASP | Text | ASI reference if applicable |
+| Risk tags | Text | Optional compact codes for exports (may be empty) |
 | Agent | Text | Name of audited agent |
 | Kind | Text | PERSONAL / ACCOUNT_LEVEL / EXTERNAL |
 | Autonomy Tier | Text | 1-4 (GOV-001 modifier) |

@@ -26,7 +26,7 @@ describe('C-007: Goal Specificity (LR-010)', () => {
     expect(goalSpecificityCheck.agentPromptSnippet).toContain('C-007');
   });
 
-  it('warning severity (no OWASP tag — goal quality is not a security risk on its own)', () => {
+  it('warning severity (no risk-tag metadata — goal quality is not a security risk on its own)', () => {
     expect(goalSpecificityCheck.severity).toBe('warning');
   });
 

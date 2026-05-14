@@ -27,7 +27,7 @@ describe('S-009: Persona-Drift Red-Team (LR-009, k=5)', () => {
     expect(personaDriftCheck.agentPromptSnippet).toContain('k=5');
   });
 
-  it('warning severity, ASI-01', () => {
+  it('warning severity with injection-theme risk tag on metadata', () => {
     expect(personaDriftCheck.severity).toBe('warning');
     expect(personaDriftCheck.owaspAsi).toContain('ASI-01');
   });

@@ -42,7 +42,7 @@
 - An **MCP server** with **stdio** (`src/mcp/server.ts`) and **Streamable HTTP** (`src/mcp/http-server.ts`) transports.
 - A **Vite + React embedded app** (`src/app/`) that runs inside monday.com and fetches agents via an internal session-authenticated endpoint when available, with JSON paste fallback.
 
-The core value proposition: a **deployment-oriented quality gate** before agents reach production—scored output, OWASP ASI–tagged findings, recommendations, and explicit `deploymentRecommendation` (`ready` | `needs-fixes` | `not-ready`).
+The core value proposition: a **deployment-oriented quality gate** before agents reach production—scored output, plain-language findings, recommendations, and explicit `deploymentRecommendation` (`ready` | `needs-fixes` | `not-ready`).
 
 ---
 
@@ -51,7 +51,7 @@ The core value proposition: a **deployment-oriented quality gate** before agents
 | Term | Meaning |
 |------|---------|
 | **AgentConfig** | Canonical in-memory / JSON shape describing one agent (instructions, KB, tools, triggers, permissions, skills). Defined in `src/config/types.ts`. |
-| **Audit rule** | A single deterministic check: metadata (`id`, `name`, `severity`, `category`, optional `pillar`, `owaspAsi`, `agentPromptSnippet`) plus a `check(config, context?) → AuditResult` function. |
+| **Audit rule** | A single deterministic check: metadata (`id`, `name`, `severity`, `category`, optional `pillar`, optional `owaspAsi` for JSON exports, optional `agentPromptSnippet`) plus a `check(config, context?) → AuditResult` function. |
 | **Pillar** | One of: Completeness, Safety, Quality, Observability, Reliability. Rules with `pillar` set are evaluable from **instruction-level** data alone (v1 / `get_agent` surface). |
 | **Full-mode rule** | Rule **without** `pillar`: requires tools, KB, permissions, triggers, or similar fields in `AgentConfig`. |
 | **Instruction-only / v1 surface** | Predicate: rule has `pillar !== undefined`. Same idea as `isInstructionOnlyRule()` in `src/mcp/public-api-mapper.ts`. |
@@ -72,11 +72,11 @@ The core value proposition: a **deployment-oriented quality gate** before agents
 
 - Agent Builder ships rich agents without a built-in **config quality gate**.
 - Misconfiguration correlates with hallucinations, runaway loops, over-broad permissions, and data-handling mistakes.
-- Security and procurement audiences benefit from **OWASP Agentic Security Initiative (ASI)** tags on findings.
+- Security and procurement audiences can still align exports to internal risk-tag metadata when questionnaires require machine-readable groupings.
 
 ### 3.2 Primary outputs
 
-- **Per-rule results:** pass/fail, message, optional recommendation, evidence, OWASP tags.
+- **Per-rule results:** pass/fail, message, optional recommendation, evidence, optional compact risk-tag metadata for exports.
 - **Aggregate score** (0–100), **letter grade** (A–F), **deployment recommendation**.
 - **Optional layers:** simulation resilience breakdown; LLM review scores and tailored fix snippets (Q-004).
 - **Recommendations list:** sorted by priority, merge of config failures + LLM failures, with Q-004 tailored text overriding generic `howToFix` where applicable.
@@ -513,7 +513,7 @@ Each returns `SimulationResult` (`verdict`, `resilienceScore`, `gaps`, `defenseF
 
 1. Implement `LlmReviewCheck` in `src/llm-review/checks/lr-NNN-*.ts`.
 2. Register in `PHASE_1_CHECKS` (or integrate into phase 2 if it must run after others).
-3. Wire pillar / OWASP on the check object for pillar score bucketing.
+3. Wire pillar and optional `owaspAsi` on the check object for pillar score bucketing and JSON exports.
 4. Add tests with `tests/llm-review/mock-client.ts`.
 
 ### 12.4 Add a simulation probe
@@ -621,11 +621,11 @@ LLM review sends instruction text and structured prompts to **Anthropic**. Logs 
 
 ### 15.4 Agent-as-auditor hardening
 
-`agent-prompt.ts` / spec emphasize: evaluated agent text is **DATA**, identity pinning, no fabricated scores. Aligns with OWASP ASI prompt-injection themes.
+`agent-prompt.ts` / spec emphasize: evaluated agent text is **DATA**, identity pinning, no fabricated scores — the same ideas behind strong prompt-injection hygiene, without leaning on framework jargon in the live agent text.
 
 ### 15.5 Supply chain / platform
 
-ASI-04 is noted in README as future work; KB file naming heuristics partially substitute. RCE class risks are called out of scope for Agent Builder config surface.
+Supply-chain style KB coverage is noted in README as future work; KB file naming heuristics partially substitute. RCE class risks are called out of scope for Agent Builder config surface.
 
 ---
 

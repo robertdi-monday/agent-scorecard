@@ -6,7 +6,7 @@
 
 **Cursor — Agent Evaluator canvas:** The **visual, read-in-one-pass** version of this brief (value proposition, executive risk lens and decisions to align, where you can use it in monday, Agent Builder + Custom MCP flow, limitations / next steps) lives in Cursor as a **Canvas**: open **`agent-scorecard-leadership.canvas.tsx`** from the **Canvases** list for this workspace, or from the managed canvases folder on disk (typically `~/.cursor/projects/<workspace-folder>/canvases/agent-scorecard-leadership.canvas.tsx` — exact path depends on your machine). Use **this markdown** when you need monday Doc paste, versioned diffs, or the PNG/Mermaid sources under [`docs/leadership-brief-diagrams/`](./leadership-brief-diagrams/).
 
-**Standards deep dive:** For procurement, security, and regulatory framing, see [`STANDARDS_AND_VALUE.md`](./STANDARDS_AND_VALUE.md) (OWASP ASI Dec 2025, NIST AI RMF, multi-layer evaluation, scoring model). Roadmap tables, pilot KPI candidates, and user-flow diagrams **below** stay here for export; the Canvas summarizes the same threads for Cursor readers.
+**Standards deep dive:** For procurement, security, and regulatory framing, see [`STANDARDS_AND_VALUE.md`](./STANDARDS_AND_VALUE.md) (industry risk taxonomies including OWASP agentic materials where cited, NIST AI RMF, multi-layer evaluation, scoring model). Roadmap tables, pilot KPI candidates, and user-flow diagrams **below** stay here for export; the Canvas summarizes the same threads for Cursor readers.
 
 **Technical roadmap (engineering labels):** See [`ROADMAP.md`](./ROADMAP.md). *Note:* the shipped **product/library release** is **v2.0.0** (`package.json`, `CHANGELOG.md`). The roadmap file reuses version numbers for *later* themes (e.g. “org dashboard”); treat roadmap rows as **phases**, not the same as npm package semver, unless you align naming in a future edit.
 
@@ -39,7 +39,7 @@ Summarized from [`STANDARDS_AND_VALUE.md`](../STANDARDS_AND_VALUE.md):
 
 1. **Problem:** Customer-built agents often ship **without** a repeatable quality or security gate — risking hallucinations, leaks, injection, runaway automation, and (in regulated use cases) **contract or eligibility** exposure.
 
-2. **Defensibility:** Checks are mapped to **recognized** frameworks — **OWASP Agentic Security Initiative (ASI, Dec 2025)**, **NIST AI RMF** (GOVERN / MEASURE / MANAGE via tiering, observability, reliability), and **adversarial** methodology aligned with industry practice (e.g. MITRE ATLAS–style thinking). That is the language **security, procurement, and auditors** already use.
+2. **Defensibility:** Checks are grouped into **plain-language risk themes** (injection, privilege, tools, traceability, identity) and can be cross-walked to **NIST AI RMF** (GOVERN / MEASURE / MANAGE via tiering, observability, reliability) and adversarial methodology aligned with industry practice (e.g. MITRE ATLAS–style thinking). Deeper framework citations live in the standards doc for teams that need them.
 
 3. **Risk-tiered, not one-size-fits-all:** **GOV-001** raises the bar for higher-autonomy agents (e.g. broader capability surface, account-level / external kinds). A “B” on a low-tier assistant is not the same decision as a “B” on a high-tier operator.
 

@@ -14,20 +14,12 @@ import {
 
 // Full-mode-only rules (no `pillar` — require tools / KB to evaluate).
 // S-001 and S-002 (instruction-text checks) moved to safety-auditor.ts.
-//
-// OWASP ASI mappings refreshed to the December 2025 official taxonomy:
-//   ASI-02 = Tool Misuse / Resource Overload
-//   ASI-03 = Privilege Compromise
-//   ASI-04 = Supply Chain
-//   ASI-05 = RCE / Code Attacks
-//   ASI-06 = Memory & Context Poisoning
-//   ASI-08 = Repudiation & Untraceability
-//   ASI-09 = Human-Agent Trust
+// Rules still carry optional `owaspAsi` keys on results for JSON exports — not
+// repeated in user-facing narration.
 
 /**
- * SC-002 (critical, ASI-09): Data exfiltration guard.
- * Re-mapped from ASI-04 → ASI-09 (exfiltration is a Human-Agent Trust failure
- * in the Dec 2025 taxonomy; ASI-04 is now Supply Chain).
+ * SC-002 (critical): Data exfiltration guard — read+write agents need explicit
+ * data-handling limits so sensitive workspace data does not leave approved channels.
  */
 const sc002: AuditRule = {
   id: 'SC-002',
@@ -73,7 +65,7 @@ const sc002: AuditRule = {
       passed,
       message: passed
         ? `Data handling restrictions found: ${matches.join(', ')}.`
-        : 'Agent has both data-read and data-write capabilities but no data handling restrictions. Risk of data exfiltration (OWASP ASI-09: Human-Agent Trust).',
+        : 'Agent has both data-read and data-write capabilities but no data handling restrictions. Sensitive data could be copied or sent somewhere it should not go.',
       recommendation: passed
         ? undefined
         : 'Add explicit data handling instructions: "do not send board data via email", "keep all data within monday.com", or "do not export sensitive information to external services".',
@@ -88,9 +80,8 @@ const sc002: AuditRule = {
 };
 
 /**
- * SC-003 (warning, ASI-08): Excessive autonomy check.
- * Re-mapped from ASI-05 → ASI-08 (unconstrained autonomy is a
- * Repudiation & Untraceability problem, not RCE).
+ * SC-003 (warning): Excessive autonomy — account-level agents with many tools
+ * should spell out when a human must approve high-impact actions.
  */
 const sc003: AuditRule = {
   id: 'SC-003',
@@ -128,7 +119,7 @@ const sc003: AuditRule = {
       passed,
       message: passed
         ? `Human-in-the-loop safeguards found: ${matches.join(', ')}.`
-        : `Account-level agent with ${enabledCount} tools and no human-in-the-loop safeguards. High risk of unattributable autonomous actions (OWASP ASI-08: Repudiation & Untraceability).`,
+        : `Account-level agent with ${enabledCount} tools and no human-in-the-loop safeguards. Powerful agents can take actions that are hard to trace back to a person — add explicit approval steps for sensitive work.`,
       recommendation: passed
         ? undefined
         : 'Add human approval gates for destructive or high-impact operations: "ask for approval before deleting items", "require confirmation before sending emails".',
@@ -139,9 +130,8 @@ const sc003: AuditRule = {
 };
 
 /**
- * SC-004 (warning, ASI-03): Sensitive column write guard.
- * ASI-03 (Privilege Compromise) retained — sensitive-column writes are a
- * privilege-escalation surface.
+ * SC-004 (warning): Sensitive column write guard — tools that change status,
+ * people, dates, etc. should pair with clear guardrails in the instructions.
  */
 const sc004: AuditRule = {
   id: 'SC-004',
@@ -204,10 +194,8 @@ const sc004: AuditRule = {
 };
 
 /**
- * SC-005 (critical, ASI-02): External tool URL restrictions.
- * Re-mapped from ASI-06 → ASI-02 (SSRF / unrestricted external tool calls
- * are now classified under Tool Misuse / Resource Overload; ASI-06 is
- * Memory & Context Poisoning in the Dec 2025 taxonomy).
+ * SC-005 (critical): External tool URL restrictions — web-capable tools need
+ * explicit allow-lists or validation so calls cannot wander to untrusted hosts.
  */
 const sc005: AuditRule = {
   id: 'SC-005',
@@ -247,7 +235,7 @@ const sc005: AuditRule = {
       passed,
       message: passed
         ? `URL restriction keywords found: ${matches.join(', ')}.`
-        : 'Agent has external web access tools but no URL restrictions. Risk of SSRF or runaway external calls (OWASP ASI-02: Tool Misuse).',
+        : 'Agent has external web access tools but no URL restrictions. That can enable calls to unexpected hosts or runaway automated browsing.',
       recommendation: passed
         ? undefined
         : 'Add URL restrictions: "only access approved domains: [domain1, domain2]", "do not fetch URLs from user input without validation".',
@@ -261,9 +249,8 @@ const sc005: AuditRule = {
 };
 
 /**
- * SC-006 (warning, ASI-09): Output sanitization check.
- * ASI-09 (Human-Agent Trust) retained — corrupt output erodes the trust
- * boundary between agent and operator.
+ * SC-006 (warning): Output sanitization — board-writing agents should validate
+ * or sanity-check content before it is written for everyone to see.
  */
 const sc006: AuditRule = {
   id: 'SC-006',
@@ -301,7 +288,7 @@ const sc006: AuditRule = {
       passed,
       message: passed
         ? `Output validation keywords found: ${matches.join(', ')}.`
-        : 'Agent writes to boards/items without output validation instructions. Risk of data corruption (OWASP ASI-09: Human-Agent Trust).',
+        : 'Agent writes to boards/items without output validation instructions. Bad or misleading values could be written where teammates rely on them.',
       recommendation: passed
         ? undefined
         : 'Add output validation: "validate output format before writing to board", "verify data integrity before updating columns".',

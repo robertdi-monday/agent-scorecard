@@ -2,7 +2,7 @@ import type { AgentConfig, AuditRule } from '../config/types.js';
 import { UNNECESSARY_TOOL_PATTERNS } from '../config/constants.js';
 
 /**
- * TL-001 (warning, ASI-02): Flag tools likely unnecessary for agent's stated purpose.
+ * TL-001 (warning): Flag tools likely unnecessary for agent's stated purpose.
  */
 const tl001: AuditRule = {
   id: 'TL-001',
@@ -70,7 +70,7 @@ const tl001: AuditRule = {
 };
 
 /**
- * TL-002 (critical, ASI-02): Any tool with connectionStatus === 'not_connected'.
+ * TL-002 (critical): Any tool with connectionStatus === 'not_connected'.
  */
 const tl002: AuditRule = {
   id: 'TL-002',

@@ -43,7 +43,7 @@ export const toolGoalAlignmentCheck: LlmReviewCheck = {
   category: 'Quality',
   pillar: 'Quality',
   owaspAsi: ['ASI-02'],
-  agentPromptSnippet: `**Q-003 — Plan-Goal Alignment (warning, OWASP ASI-02, pass >= 70)**
+  agentPromptSnippet: `**Q-003 — Plan-Goal Alignment (warning, pass >= 70)**
 Evaluate whether the plan text describes capabilities appropriate for the stated goal. Infer what tools/capabilities the agent likely uses from the plan description. Look for:
 - Capabilities mentioned in plan that seem irrelevant to goal
 - Capabilities the goal implies but the plan doesn't address

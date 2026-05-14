@@ -132,7 +132,7 @@ function identifyCheck(prompt: string): string | null {
   if (lower.includes('enabled tools are appropriate')) return 'Q-003';
   if (lower.includes('knowledge base files are relevant')) return 'LR-004';
   // Tier B additions — match before generic fallthroughs.
-  if (lower.includes('memory & context poisoning')) return 'S-004';
+  if (lower.includes('tool-output injection')) return 'S-004';
   if (lower.includes('structural positioning')) return 'S-005';
   if (lower.includes('refusal protocol')) return 'S-007';
   if (lower.includes('red-team adversary')) return 'S-009';
